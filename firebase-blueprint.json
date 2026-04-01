@@ -1,0 +1,86 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "A user of the Livestock Mandi platform.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "The unique identifier for the user." },
+        "displayName": { "type": "string", "description": "The user's display name." },
+        "email": { "type": "string", "format": "email", "description": "The user's email address." },
+        "photoURL": { "type": "string", "description": "The user's profile photo URL." },
+        "phoneNumber": { "type": "string", "description": "The user's phone number." },
+        "location": { "type": "string", "description": "The user's default location (City, Area)." },
+        "isVerified": { "type": "boolean", "description": "Whether the user is a verified seller." },
+        "role": { "type": "string", "enum": ["user", "admin"], "description": "The user's role." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the user account was created." }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "Ad": {
+      "title": "Ad",
+      "description": "A livestock advertisement listing.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "The unique identifier for the ad." },
+        "title": { "type": "string", "description": "The title of the advertisement." },
+        "description": { "type": "string", "description": "The detailed description of the animal." },
+        "price": { "type": "number", "description": "The asking price for the animal." },
+        "category": { "type": "string", "enum": ["Cow", "Buffalo", "Goat", "Sheep", "Camel", "Others"], "description": "The category of the animal." },
+        "breed": { "type": "string", "description": "The breed of the animal." },
+        "age": { "type": "string", "description": "The age of the animal." },
+        "weight": { "type": "string", "description": "The weight of the animal." },
+        "healthCondition": { "type": "string", "description": "The health condition of the animal." },
+        "images": { "type": "array", "items": { "type": "string" }, "description": "List of image URLs (max 5)." },
+        "video": { "type": "string", "description": "URL of the animal video (max 1)." },
+        "city": { "type": "string", "description": "The city where the animal is located." },
+        "area": { "type": "string", "description": "The specific area within the city." },
+        "phoneNumber": { "type": "string", "description": "The contact phone number." },
+        "whatsappLink": { "type": "string", "description": "The auto-generated WhatsApp link." },
+        "sellerUid": { "type": "string", "description": "The UID of the seller." },
+        "sellerName": { "type": "string", "description": "The name of the seller." },
+        "status": { "type": "string", "enum": ["pending", "active", "rejected", "expired"], "description": "The status of the ad." },
+        "isFeatured": { "type": "boolean", "description": "Whether the ad is featured." },
+        "isUrgent": { "type": "boolean", "description": "Whether the ad is marked as urgent." },
+        "viewCount": { "type": "integer", "description": "The number of views the ad has received." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the ad was posted." },
+        "expiresAt": { "type": "string", "format": "date-time", "description": "When the ad will expire." }
+      },
+      "required": ["title", "price", "category", "sellerUid", "status"]
+    },
+    "Favorite": {
+      "title": "Favorite",
+      "description": "A saved ad for a user.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "The UID of the user who saved the ad." },
+        "adId": { "type": "string", "description": "The ID of the saved ad." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the ad was saved." }
+      },
+      "required": ["userId", "adId"]
+    },
+    "Transaction": {
+      "title": "Transaction",
+      "description": "A payment transaction for featured ads.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "The unique identifier for the transaction." },
+        "userId": { "type": "string", "description": "The UID of the user who made the payment." },
+        "adId": { "type": "string", "description": "The ID of the ad being promoted." },
+        "amount": { "type": "number", "description": "The amount paid." },
+        "promotionType": { "type": "string", "enum": ["featured", "urgent", "spotlight"], "description": "The type of promotion purchased." },
+        "paymentMethod": { "type": "string", "enum": ["Easypaisa", "JazzCash"], "description": "The payment method used." },
+        "transactionId": { "type": "string", "description": "The manual transaction ID/reference provided by the user." },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"], "description": "The status of the payment." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the transaction was initiated." }
+      },
+      "required": ["userId", "adId", "amount", "status"]
+    }
+  },
+  "firestore": {
+    "/users/{uid}": { "schema": "User", "description": "User profile documents." },
+    "/ads/{adId}": { "schema": "Ad", "description": "Livestock advertisement listings." },
+    "/favorites/{favId}": { "schema": "Favorite", "description": "User favorite ads." },
+    "/transactions/{transId}": { "schema": "Transaction", "description": "Payment transactions for promotions." }
+  }
+}
