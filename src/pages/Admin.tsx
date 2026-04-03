@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { collection, onSnapshot, doc, updateDoc } from 'firebase/firestore';
+import { collection, onSnapshot, doc, updateDoc, query, where, Timestamp } from 'firebase/firestore'; // Added query, where, Timestamp
 import { db } from '../firebase';
-import { useAuth } from '../contexts/AuthProvider';
+import { useAuth } from '../contexts/AuthContext';
 import { Ad, User, Transaction } from '../types';
-import { CheckCircle, XCircle, Shield, Users, FileText, CreditCard, ExternalLink, ShieldCheck, AlertCircle, Lock } from 'lucide-react';
+import { CheckCircle, XCircle, Shield, Users, FileText, CreditCard, ExternalLink, ShieldCheck, AlertCircle, Lock, Calendar } from 'lucide-react'; // Added Calendar
 import { formatPrice, cn } from '../lib/utils';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
@@ -15,19 +15,35 @@ export default function Admin() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'ads' | 'users' | 'payments'>('ads');
+  
+  // --- NEW STATE FOR FILTERING ---
+  const [timeFilter, setTimeFilter] = useState<'all' | '7days' | 'month'>('all');
 
-  // --- NEW AUTHENTICATION STATE ---
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [authError, setAuthError] = useState('');
 
   useEffect(() => {
-    // Only fetch data if the panel is unlocked AND the user is a Firebase Admin
-    // (Or just check isUnlocked if you want to bypass the Firebase isAdmin check)
     if (!isUnlocked) return;
 
-    const unsubAds = onSnapshot(collection(db, 'ads'), (snapshot) => {
+    // 1. Logic for Time Filtering
+    let adsQuery = query(collection(db, 'ads'), where('status', '!=', 'rejected'));
+
+    if (timeFilter !== 'all') {
+      const now = new Date();
+      const daysToSubtract = timeFilter === '7days' ? 7 : 30;
+      const cutoffDate = new Date(now.setDate(now.getDate() - daysToSubtract));
+      
+      // Note: This requires an index in Firestore if combined with 'status != rejected'
+      adsQuery = query(
+        collection(db, 'ads'), 
+        where('status', '!=', 'rejected'),
+        where('createdAt', '>=', Timestamp.fromDate(cutoffDate))
+      );
+    }
+
+    const unsubAds = onSnapshot(adsQuery, (snapshot) => {
       setAds(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Ad)));
     });
 
@@ -45,11 +61,10 @@ export default function Admin() {
       unsubUsers();
       unsubTrans();
     };
-  }, [isUnlocked]);
+  }, [isUnlocked, timeFilter]); // Added timeFilter to dependencies
 
   const handleAdminLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    // SET YOUR DESIRED CREDENTIALS HERE
     if (email === "zaheerhussainhussain16@gmail.com" && password === "admin1234") {
       setIsUnlocked(true);
       setAuthError('');
@@ -60,8 +75,8 @@ export default function Admin() {
     }
   };
 
-  // --- LOGIN UI GATE ---
   if (!isUnlocked) {
+    // ... (Your existing Login UI code stays the same)
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
         <div className="max-w-md w-full bg-white rounded-3xl shadow-xl p-8 border border-gray-200">
@@ -128,7 +143,7 @@ export default function Admin() {
   const handleRejectAd = async (adId: string) => {
     try {
       await updateDoc(doc(db, 'ads', adId), { status: 'rejected' });
-      toast.success('Ad rejected');
+      toast.success('Ad removed from panel');
     } catch (error) {
       toast.error('Error rejecting ad');
     }
@@ -159,19 +174,33 @@ export default function Admin() {
               Lock Panel
             </button>
           </div>
-          <div className="flex space-x-4">
-            <div className="bg-white px-6 py-3 rounded-2xl shadow-sm border border-gray-200 text-center">
-              <div className="text-xs text-gray-500 font-bold uppercase tracking-wider">Total Ads</div>
-              <div className="text-2xl font-bold text-green-700">{ads.length}</div>
-            </div>
-            <div className="bg-white px-6 py-3 rounded-2xl shadow-sm border border-gray-200 text-center">
-              <div className="text-xs text-gray-500 font-bold uppercase tracking-wider">Pending</div>
-              <div className="text-2xl font-bold text-orange-600">{ads.filter(a => a.status === 'pending').length}</div>
+          
+          {/* --- UPDATED TIME FILTER DROPDOWN --- */}
+          <div className="flex items-center space-x-4">
+            {activeTab === 'ads' && (
+              <div className="flex items-center bg-white border border-gray-200 rounded-xl px-3 py-1 shadow-sm">
+                <Calendar className="w-4 h-4 text-gray-400 mr-2" />
+                <select 
+                  value={timeFilter}
+                  onChange={(e) => setTimeFilter(e.target.value as any)}
+                  className="text-sm font-bold text-gray-700 outline-none bg-transparent py-2"
+                >
+                  <option value="all">All Time</option>
+                  <option value="7days">In 7 Days</option>
+                  <option value="month">Last Month</option>
+                </select>
+              </div>
+            )}
+            <div className="hidden sm:flex space-x-4">
+              <div className="bg-white px-6 py-3 rounded-2xl shadow-sm border border-gray-200 text-center">
+                <div className="text-xs text-gray-500 font-bold uppercase tracking-wider">Visible Ads</div>
+                <div className="text-2xl font-bold text-green-700">{ads.length}</div>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Tabs */}
+        {/* Tabs and rest of the content remains exactly the same... */}
         <div className="flex space-x-4 mb-8">
           <button
             onClick={() => setActiveTab('ads')}
@@ -205,7 +234,6 @@ export default function Admin() {
           </button>
         </div>
 
-        {/* Content */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
           {activeTab === 'ads' && (
             <div className="overflow-x-auto">
@@ -261,56 +289,61 @@ export default function Admin() {
                   ))}
                 </tbody>
               </table>
+              {ads.length === 0 && (
+                <div className="p-12 text-center text-gray-500">
+                   No ads found for this period.
+                </div>
+              )}
             </div>
           )}
 
           {activeTab === 'users' && (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left">
-                <thead className="bg-gray-50 border-b border-gray-100">
-                  <tr>
-                    <th className="px-6 py-4 text-sm font-bold text-gray-700">User</th>
-                    <th className="px-6 py-4 text-sm font-bold text-gray-700">Email</th>
-                    <th className="px-6 py-4 text-sm font-bold text-gray-700">Role</th>
-                    <th className="px-6 py-4 text-sm font-bold text-gray-700">Verified</th>
-                    <th className="px-6 py-4 text-sm font-bold text-gray-700">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {users.map(u => (
-                    <tr key={u.uid} className="hover:bg-gray-50/50">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center space-x-3">
-                          <img src={u.photoURL} alt="" className="w-10 h-10 rounded-full" />
-                          <div className="font-bold text-gray-900">{u.displayName}</div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-600">{u.email}</td>
-                      <td className="px-6 py-4 text-sm font-medium uppercase">{u.role}</td>
-                      <td className="px-6 py-4">
-                        {u.isVerified ? (
-                          <ShieldCheck className="w-5 h-5 text-blue-500" />
-                        ) : (
-                          <AlertCircle className="w-5 h-5 text-gray-300" />
-                        )}
-                      </td>
-                      <td className="px-6 py-4">
-                        <button
-                          onClick={() => handleVerifyUser(u.uid, u.isVerified)}
-                          className={cn(
-                            "px-4 py-2 rounded-lg text-xs font-bold transition-all",
-                            u.isVerified ? "bg-red-50 text-red-600 hover:bg-red-100" : "bg-blue-50 text-blue-600 hover:bg-blue-100"
-                          )}
-                        >
-                          {u.isVerified ? 'Unverify' : 'Verify Seller'}
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+             <div className="overflow-x-auto">
+               <table className="w-full text-left">
+                 <thead className="bg-gray-50 border-b border-gray-100">
+                   <tr>
+                     <th className="px-6 py-4 text-sm font-bold text-gray-700">User</th>
+                     <th className="px-6 py-4 text-sm font-bold text-gray-700">Email</th>
+                     <th className="px-6 py-4 text-sm font-bold text-gray-700">Role</th>
+                     <th className="px-6 py-4 text-sm font-bold text-gray-700">Verified</th>
+                     <th className="px-6 py-4 text-sm font-bold text-gray-700">Actions</th>
+                   </tr>
+                 </thead>
+                 <tbody className="divide-y divide-gray-50">
+                   {users.map(u => (
+                     <tr key={u.uid} className="hover:bg-gray-50/50">
+                       <td className="px-6 py-4">
+                         <div className="flex items-center space-x-3">
+                           <img src={u.photoURL} alt="" className="w-10 h-10 rounded-full" />
+                           <div className="font-bold text-gray-900">{u.displayName}</div>
+                         </div>
+                       </td>
+                       <td className="px-6 py-4 text-sm text-gray-600">{u.email}</td>
+                       <td className="px-6 py-4 text-sm font-medium uppercase">{u.role}</td>
+                       <td className="px-6 py-4">
+                         {u.isVerified ? (
+                           <ShieldCheck className="w-5 h-5 text-blue-500" />
+                         ) : (
+                           <AlertCircle className="w-5 h-5 text-gray-300" />
+                         )}
+                       </td>
+                       <td className="px-6 py-4">
+                         <button
+                           onClick={() => handleVerifyUser(u.uid, u.isVerified)}
+                           className={cn(
+                             "px-4 py-2 rounded-lg text-xs font-bold transition-all",
+                             u.isVerified ? "bg-red-50 text-red-600 hover:bg-red-100" : "bg-blue-50 text-blue-600 hover:bg-blue-100"
+                           )}
+                         >
+                           {u.isVerified ? 'Unverify' : 'Verify Seller'}
+                         </button>
+                       </td>
+                     </tr>
+                   ))}
+                 </tbody>
+               </table>
+             </div>
+           )}
         </div>
       </div>
     </div>

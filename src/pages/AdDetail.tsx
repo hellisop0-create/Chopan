@@ -4,7 +4,7 @@ import { doc, getDoc, collection, query, where, limit, onSnapshot, updateDoc, in
 import { db } from '../firebase';
 import { Ad } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
-import { useAuth } from '../contexts/AuthProvider';
+import { useAuth } from '../contexts/AuthContext';
 import { formatPrice, cn } from '../lib/utils';
 import { MapPin, Phone, MessageCircle, ShieldCheck, Share2, ChevronLeft, ChevronRight, Flag, Calendar, Weight, Activity, Info } from 'lucide-react';
 import AdCard from '../components/AdCard';

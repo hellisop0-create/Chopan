@@ -17,15 +17,21 @@ export default function App() {
     <LanguageProvider>
   <AuthProvider>
     <Router>
-      <Navbar />
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/browse" element={<Browse />} />
-        <Route path="/ad/:id" element={<AdDetail />} />
-        <Route path="/post-ad" element={<PostAd />} />
-        <Route path="/profile" element={<Profile />} />
-        <Route path="/admin" element={<Admin />} />
-      </Routes>
+      <div className="min-h-screen flex flex-col bg-gray-50">
+        <Navbar />
+        <main className="flex-grow">
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/browse" element={<Browse />} />
+            <Route path="/ad/:id" element={<AdDetail />} />
+            <Route path="/post-ad" element={<PostAd />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/admin" element={<Admin />} />
+          </Routes>
+        </main>
+        <Footer />
+        <Toaster position="top-center" richColors />
+      </div>
     </Router>
   </AuthProvider>
 </LanguageProvider>

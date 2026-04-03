@@ -1,46 +1,35 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+// src/contexts/AuthProvider.tsx
+import React, { useState, useEffect } from 'react';
+import { AuthContext } from './AuthContext';
+import { User } from '../types';
+import { auth, db, googleProvider } from '../firebase';
 import { onAuthStateChanged, signInWithPopup, signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { auth, db, googleProvider } from '../firebase';
-import { User } from '../types';
-import { handleFirestoreError, OperationType } from '../lib/firestore-utils';
 
-interface AuthContextType {
-  user: User | null;
-  loading: boolean;
-  login: () => Promise<void>;
-  logout: () => Promise<void>;
-  isAdmin: boolean;
-}
-
-export const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        try {
-          const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-          if (userDoc.exists()) {
-            setUser(userDoc.data() as User);
-          } else {
-            const newUser: User = {
-              uid: firebaseUser.uid,
-              displayName: firebaseUser.displayName || 'Anonymous',
-              email: firebaseUser.email || '',
-              photoURL: firebaseUser.photoURL || '',
-              isVerified: false,
-              role: 'user',
-              createdAt: new Date().toISOString(),
-            };
-            await setDoc(doc(db, 'users', firebaseUser.uid), newUser);
-            setUser(newUser);
-          }
-        } catch (error) {
-          handleFirestoreError(error, OperationType.GET, `users/${firebaseUser.uid}`);
+        const userRef = doc(db, 'users', firebaseUser.uid);
+        const userDoc = await getDoc(userRef);
+
+        if (userDoc.exists()) {
+          setUser(userDoc.data() as User);
+        } else {
+          const newUser: User = {
+            uid: firebaseUser.uid,
+            displayName: firebaseUser.displayName || 'Anonymous',
+            email: firebaseUser.email || '',
+            photoURL: firebaseUser.photoURL || '',
+            role: 'user',
+            isVerified: false,
+            createdAt: new Date().toISOString(),
+          };
+          await setDoc(userRef, newUser);
+          setUser(newUser);
         }
       } else {
         setUser(null);
@@ -55,18 +44,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       await signInWithPopup(auth, googleProvider);
     } catch (error: any) {
-      if (error.code === 'auth/popup-closed-by-user') {
-        return;
-      }
-      console.error('Login error:', error);
+      console.error('Login error:', error.message);
+      alert(`Login failed: ${error.message}`);
     }
   };
 
   const logout = async () => {
     try {
       await signOut(auth);
-    } catch (error) {
-      console.error('Logout error:', error);
+    } catch (error: any) {
+      console.error('Logout error:', error.message);
+      alert(`Logout failed: ${error.message}`);
     }
   };
 
@@ -77,10 +65,4 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       {children}
     </AuthContext.Provider>
   );
-}
-
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (!context) throw new Error('useAuth must be used within an AuthProvider');
-  return context;
-}
+};
