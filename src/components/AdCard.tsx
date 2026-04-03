@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { MapPin, Heart, ShieldCheck, Zap } from 'lucide-react';
 import { Ad } from '../types';
 import { formatPrice, cn } from '../lib/utils';
-import { useLanguage } from '../LanguageContext';
+import { useLanguage } from '../contexts/LanguageContext';
 import { motion } from 'motion/react';
 
 interface AdCardProps {

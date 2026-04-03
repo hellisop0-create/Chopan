@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { collection, onSnapshot, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
-import { useAuth } from '../AuthContext';
+import { useAuth } from '../contexts/AuthProvider';
 import { Ad, User, Transaction } from '../types';
 import { CheckCircle, XCircle, Shield, Users, FileText, CreditCard, ExternalLink, ShieldCheck, AlertCircle, Lock } from 'lucide-react';
 import { formatPrice, cn } from '../lib/utils';

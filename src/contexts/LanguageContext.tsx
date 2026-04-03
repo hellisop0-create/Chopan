@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Language, Translations } from './types';
+import { Language, Translations } from '../types';
 
 const translations: Translations = {
   appName: { en: 'Pakistan Livestock Mandi', ur: 'پاکستان مویشی منڈی' },

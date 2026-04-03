@@ -4,7 +4,7 @@ import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestor
 import { db } from '../firebase';
 import { Ad, Category } from '../types';
 import AdCard from '../components/AdCard';
-import { useLanguage } from '../LanguageContext';
+import { useLanguage } from '../contexts/LanguageContext';
 import { Search, SlidersHorizontal, MapPin, X } from 'lucide-react';
 import { cn } from '../lib/utils';
 

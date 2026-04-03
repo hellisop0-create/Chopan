@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { collection, addDoc } from 'firebase/firestore';
 import { db } from '../firebase';
-import { useAuth } from '../AuthContext';
-import { useLanguage } from '../LanguageContext';
+import { useAuth } from '../contexts/AuthProvider';
+import { useLanguage } from '../contexts/LanguageContext';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -25,6 +25,8 @@ const adSchema = z.object({
 });
 
 type AdFormData = z.infer<typeof adSchema>;
+
+import { handleFirestoreError, OperationType } from '../lib/firestore-utils';
 
 export default function PostAd() {
   const { user } = useAuth();
@@ -108,14 +110,18 @@ export default function PostAd() {
 
       if (uploadedUrls.length === 0) throw new Error("No images were uploaded.");
 
-      await addDoc(collection(db, 'ads'), {
-        ...data,
-        images: uploadedUrls,
-        sellerUid: user?.uid,
-        sellerName: user?.displayName || 'Seller',
-        status: 'pending',
-        createdAt: new Date().toISOString(),
-      });
+      try {
+        await addDoc(collection(db, 'ads'), {
+          ...data,
+          images: uploadedUrls,
+          sellerUid: user?.uid,
+          sellerName: user?.displayName || 'Seller',
+          status: 'pending',
+          createdAt: new Date().toISOString(),
+        });
+      } catch (error) {
+        handleFirestoreError(error, OperationType.WRITE, 'ads');
+      }
 
       setShowSuccessModal(true); 
 

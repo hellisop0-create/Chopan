@@ -1,8 +1,9 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { onAuthStateChanged, signInWithPopup, signOut, User as FirebaseUser } from 'firebase/auth';
-import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
-import { auth, db, googleProvider } from './firebase';
-import { User } from './types';
+import { onAuthStateChanged, signInWithPopup, signOut } from 'firebase/auth';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { auth, db, googleProvider } from '../firebase';
+import { User } from '../types';
+import { handleFirestoreError, OperationType } from '../lib/firestore-utils';
 
 interface AuthContextType {
   user: User | null;
@@ -12,7 +13,7 @@ interface AuthContextType {
   isAdmin: boolean;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -21,21 +22,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-        if (userDoc.exists()) {
-          setUser(userDoc.data() as User);
-        } else {
-          const newUser: User = {
-            uid: firebaseUser.uid,
-            displayName: firebaseUser.displayName || 'Anonymous',
-            email: firebaseUser.email || '',
-            photoURL: firebaseUser.photoURL || '',
-            isVerified: false,
-            role: 'user',
-            createdAt: new Date().toISOString(),
-          };
-          await setDoc(doc(db, 'users', firebaseUser.uid), newUser);
-          setUser(newUser);
+        try {
+          const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+          if (userDoc.exists()) {
+            setUser(userDoc.data() as User);
+          } else {
+            const newUser: User = {
+              uid: firebaseUser.uid,
+              displayName: firebaseUser.displayName || 'Anonymous',
+              email: firebaseUser.email || '',
+              photoURL: firebaseUser.photoURL || '',
+              isVerified: false,
+              role: 'user',
+              createdAt: new Date().toISOString(),
+            };
+            await setDoc(doc(db, 'users', firebaseUser.uid), newUser);
+            setUser(newUser);
+          }
+        } catch (error) {
+          handleFirestoreError(error, OperationType.GET, `users/${firebaseUser.uid}`);
         }
       } else {
         setUser(null);
@@ -49,7 +54,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async () => {
     try {
       await signInWithPopup(auth, googleProvider);
-    } catch (error) {
+    } catch (error: any) {
+      if (error.code === 'auth/popup-closed-by-user') {
+        return;
+      }
       console.error('Login error:', error);
     }
   };

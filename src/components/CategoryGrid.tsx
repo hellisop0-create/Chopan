@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { useLanguage } from '../LanguageContext';
+import { useLanguage } from '../contexts/LanguageContext';
 import { motion } from 'motion/react';
 
 // Using Web URLs so Google AI Studio can display them immediately

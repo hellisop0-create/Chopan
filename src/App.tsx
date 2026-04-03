@@ -1,7 +1,7 @@
-import React from 'react';
+// src/App.tsx
+import { AuthProvider } from './contexts/AuthProvider';
+import { LanguageProvider } from './contexts/LanguageContext';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { AuthProvider } from './AuthContext';
-import { LanguageProvider } from './LanguageContext';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import Home from './pages/Home';
@@ -15,25 +15,19 @@ import { Toaster } from 'sonner';
 export default function App() {
   return (
     <LanguageProvider>
-      <AuthProvider>
-        <Router>
-          <div className="min-h-screen flex flex-col bg-gray-50">
-            <Navbar />
-            <main className="flex-grow">
-              <Routes>
-                <Route path="/" element={<Home />} />
-                <Route path="/browse" element={<Browse />} />
-                <Route path="/ad/:id" element={<AdDetail />} />
-                <Route path="/post-ad" element={<PostAd />} />
-                <Route path="/profile" element={<Profile />} />
-                <Route path="/admin" element={<Admin />} />
-              </Routes>
-            </main>
-            <Footer />
-            <Toaster position="top-center" richColors />
-          </div>
-        </Router>
-      </AuthProvider>
-    </LanguageProvider>
+  <AuthProvider>
+    <Router>
+      <Navbar />
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/browse" element={<Browse />} />
+        <Route path="/ad/:id" element={<AdDetail />} />
+        <Route path="/post-ad" element={<PostAd />} />
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/admin" element={<Admin />} />
+      </Routes>
+    </Router>
+  </AuthProvider>
+</LanguageProvider>
   );
 }

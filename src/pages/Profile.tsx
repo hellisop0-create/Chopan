@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { collection, query, where, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../firebase';
-import { useAuth } from '../AuthContext';
+import { useAuth } from '../contexts/AuthProvider';
 import { Ad } from '../types';
 import AdCard from '../components/AdCard';
-import { useLanguage } from '../LanguageContext';
+import { useLanguage } from '../contexts/LanguageContext';
 import { User as UserIcon, Settings, Heart, List, Trash2, Edit, CheckCircle, Clock } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { User } from '../types';

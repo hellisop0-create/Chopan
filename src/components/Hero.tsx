@@ -1,6 +1,6 @@
 import React from 'react';
 import { Search, MapPin } from 'lucide-react';
-import { useLanguage } from '../LanguageContext';
+import { useLanguage } from '../contexts/LanguageContext';
 import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
 

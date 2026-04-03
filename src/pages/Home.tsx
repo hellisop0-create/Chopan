@@ -5,8 +5,10 @@ import { Ad } from '../types';
 import Hero from '../components/Hero';
 import CategoryGrid from '../components/CategoryGrid';
 import AdCard from '../components/AdCard';
-import { useLanguage } from '../LanguageContext';
+import { useLanguage } from '../contexts/LanguageContext';
 import { motion } from 'motion/react';
+
+import { handleFirestoreError, OperationType } from '../lib/firestore-utils';
 
 export default function Home() {
   const [featuredAds, setFeaturedAds] = useState<Ad[]>([]);
@@ -25,6 +27,8 @@ export default function Home() {
 
     const unsubscribeFeatured = onSnapshot(featuredQuery, (snapshot) => {
       setFeaturedAds(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Ad)));
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'ads');
     });
 
     // Fetch Latest Ads
@@ -38,6 +42,8 @@ export default function Home() {
     const unsubscribeLatest = onSnapshot(latestQuery, (snapshot) => {
       setLatestAds(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Ad)));
       setLoading(false);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'ads');
     });
 
     return () => {
