@@ -61,6 +61,16 @@ export default function Admin() {
     }
   };
 
+  // --- USER ACTIONS ---
+  const toggleUserVerification = async (uid: string, currentStatus: boolean) => {
+    try {
+      await updateDoc(doc(db, 'users', uid), { isVerified: !currentStatus });
+      toast.success('Verification status updated');
+    } catch (error) {
+      toast.error('Failed to update user');
+    }
+  };
+
   if (authLoading) return <div className="min-h-screen flex items-center justify-center font-bold text-green-700 uppercase tracking-widest">Accessing CityCare Secure Layer...</div>;
   if (!isAdmin) return <div className="p-20 text-center font-black text-red-600 uppercase">Unauthorized Access Detected.</div>;
 
@@ -71,15 +81,15 @@ export default function Admin() {
         {/* Header Section */}
         <div className="flex flex-col md:flex-row justify-between items-end mb-10 gap-6">
           <div>
-            <h1 className="text-4xl font-black text-gray-900 tracking-tight">ADMIN PANEL</h1>
+            <h1 className="text-4xl font-black text-gray-900 tracking-tight italic">CITYCARE COMMAND</h1>
             <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mt-1">Mandi Operations & Verification</p>
           </div>
 
           <div className="flex bg-white p-1.5 rounded-2xl border shadow-sm w-full md:w-auto">
-            <button onClick={() => setActiveTab('ads')} className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-black text-xs uppercase transition-all ${activeTab === 'ads' ? 'bg-green-600 text-white shadow-lg shadow-green-100' : 'text-gray-400'}`}>
+            <button onClick={() => setActiveTab('ads')} className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-black text-xs uppercase transition-all ${activeTab === 'ads' ? 'bg-green-600 text-white shadow-lg' : 'text-gray-400 hover:text-gray-600'}`}>
               <LayoutDashboard size={14} /> Listings ({ads.length})
             </button>
-            <button onClick={() => setActiveTab('users')} className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-black text-xs uppercase transition-all ${activeTab === 'users' ? 'bg-green-600 text-white shadow-lg shadow-green-100' : 'text-gray-400'}`}>
+            <button onClick={() => setActiveTab('users')} className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-black text-xs uppercase transition-all ${activeTab === 'users' ? 'bg-green-600 text-white shadow-lg' : 'text-gray-400 hover:text-gray-600'}`}>
               <Users size={14} /> Sellers ({users.length})
             </button>
           </div>
@@ -98,18 +108,30 @@ export default function Admin() {
             </thead>
             <tbody className="divide-y divide-gray-50">
               {activeTab === 'ads' ? ads.map(ad => (
-                <tr key={ad.id} className="hover:bg-gray-50/30 transition-colors">
+                <tr key={ad.id} className="hover:bg-gray-50/30 transition-colors group">
                   {/* Image & ID */}
                   <td className="p-5">
                     <div className="flex items-center gap-4">
-                      <div className="w-16 h-12 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0 border border-gray-200 shadow-sm relative">
+                      {/* THUMBNAIL */}
+                      <div className="w-20 h-14 rounded-xl bg-gray-100 overflow-hidden flex-shrink-0 border-2 border-gray-100 shadow-sm relative">
                         {ad.images?.[0] ? (
-                          <img src={ad.images[0]} alt="" className="w-full h-full object-cover" />
+                          <img 
+                            src={ad.images[0]} 
+                            alt="" 
+                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
+                          />
                         ) : (
-                          <div className="flex items-center justify-center h-full text-gray-300"><ImageIcon size={16} /></div>
+                          <div className="flex items-center justify-center h-full text-gray-300">
+                            <ImageIcon size={20} />
+                          </div>
                         )}
-                        {ad.isFeatured && <div className="absolute top-0 left-0 w-2 h-2 bg-yellow-400 rounded-br-md shadow-sm"></div>}
+                        {ad.isFeatured && (
+                           <div className="absolute top-0 left-0 bg-yellow-400 p-0.5 rounded-br-lg shadow-sm">
+                              <Star size={8} fill="white" className="text-white" />
+                           </div>
+                        )}
                       </div>
+                      
                       <div>
                         <div className="font-bold text-gray-900 text-sm leading-tight mb-1">{ad.title}</div>
                         <div className="flex items-center gap-1">
@@ -123,7 +145,9 @@ export default function Admin() {
                   {/* Seller & Price */}
                   <td className="p-5">
                     <div className="text-xs font-bold text-gray-800">{ad.sellerName || 'Anonymous'}</div>
-                    <div className="text-[10px] text-green-600 font-black mt-0.5">Rs {Number(ad.price).toLocaleString()}</div>
+                    <div className="text-[10px] text-green-600 font-black mt-0.5 tracking-wide">
+                        Rs {Number(ad.price || 0).toLocaleString()}
+                    </div>
                   </td>
 
                   {/* Status Badges */}
@@ -134,54 +158,49 @@ export default function Admin() {
                       </span>
                       {ad.isFeatured && (
                         <span className="flex items-center gap-1 bg-yellow-400 text-white text-[8px] font-black px-2 py-0.5 rounded-full shadow-sm">
-                          <Star size={8} fill="currentColor" /> GOLD FEATURED
+                          <Star size={8} fill="currentColor" /> GOLD
                         </span>
                       )}
                     </div>
                   </td>
 
-                  {/* RESTORED BUTTONS */}
+                  {/* ACTIONS */}
                   <td className="p-5 text-right">
                     <div className="flex justify-end items-center gap-1">
-                      {/* Accept Button */}
                       <button 
                         onClick={() => handleUpdateAdStatus(ad.id, 'active')} 
-                        title="Approve Listing"
                         className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-all"
+                        title="Approve"
                       >
                         <CheckCircle2 size={20} />
                       </button>
                       
-                      {/* Decline Button */}
                       <button 
                         onClick={() => handleUpdateAdStatus(ad.id, 'declined')} 
-                        title="Decline Listing"
                         className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-all"
+                        title="Decline"
                       >
                         <XCircle size={20} />
                       </button>
 
-                      {/* Gold Feature Toggle */}
                       <button 
                         onClick={() => handleToggleFeatured(ad.id, ad.isFeatured)} 
-                        title="Toggle Gold/Featured Status"
-                        className={`p-2 rounded-lg transition-all ${ad.isFeatured ? 'bg-yellow-400 text-white shadow-md shadow-yellow-100' : 'bg-gray-100 text-gray-400 hover:bg-yellow-50 hover:text-yellow-500'}`}
+                        className={`p-2 rounded-lg transition-all ${ad.isFeatured ? 'bg-yellow-400 text-white shadow-md' : 'bg-gray-100 text-gray-400 hover:bg-yellow-50 hover:text-yellow-500'}`}
+                        title="Toggle Featured"
                       >
                         <Star size={20} fill={ad.isFeatured ? 'white' : 'none'} />
                       </button>
 
                       <div className="w-[1px] h-6 bg-gray-200 mx-1"></div>
 
-                      {/* External Link */}
                       <Link to={`/ad/${ad.id}`} className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-all">
                         <ExternalLink size={20} />
                       </Link>
 
-                      {/* Delete Button */}
                       <button 
                         onClick={() => handleDeleteAd(ad.id)} 
-                        title="Delete Permanently"
                         className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-all"
+                        title="Delete"
                       >
                         <Trash2 size={20} />
                       </button>
@@ -190,24 +209,39 @@ export default function Admin() {
                 </tr>
               )) : (
                 users.map(u => (
-                  <tr key={u.uid} className="hover:bg-gray-50/30">
-                    {/* User Profile Logic Restored Here as well... */}
+                  <tr key={u.uid} className="hover:bg-gray-50/30 transition-colors">
                     <td className="p-5 flex items-center gap-3">
-                       <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center font-black text-blue-600 border border-blue-200">{u.displayName?.charAt(0) || 'U'}</div>
-                       <div className="font-bold text-gray-900">{u.displayName || 'Guest User'}</div>
+                       <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center font-black text-blue-600 border border-blue-200">
+                          {u.displayName?.charAt(0) || 'U'}
+                       </div>
+                       <div className="font-bold text-gray-900 text-sm">{u.displayName || 'Guest User'}</div>
                     </td>
-                    <td className="p-5 text-sm text-gray-500">{u.email}</td>
                     <td className="p-5">
-                      <span className={`text-[10px] font-black px-3 py-1 rounded-full ${u.isVerified ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-400'}`}>
-                        {u.isVerified ? 'VERIFIED SELLER' : 'STANDARD'}
-                      </span>
+                        <div className="text-xs text-gray-500 mb-1">{u.email}</div>
+                        <button 
+                            onClick={() => toggleUserVerification(u.uid, u.isVerified)}
+                            className={`text-[9px] font-black px-3 py-1 rounded-full transition-all ${u.isVerified ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-400'}`}
+                        >
+                            {u.isVerified ? 'VERIFIED SELLER' : 'NOT VERIFIED'}
+                        </button>
                     </td>
-                    <td className="p-5 text-right italic text-[10px] text-gray-300 font-mono">{u.uid}</td>
+                    <td className="p-5">
+                       <span className="text-[10px] font-mono text-gray-300 italic">{u.uid.slice(0, 16)}...</span>
+                    </td>
+                    <td className="p-5 text-right">
+                        <ShieldCheck size={18} className={u.isVerified ? 'text-blue-500 ml-auto' : 'text-gray-200 ml-auto'} />
+                    </td>
                   </tr>
                 ))
               )}
             </tbody>
           </table>
+          {/* Empty States */}
+          {((activeTab === 'ads' && ads.length === 0) || (activeTab === 'users' && users.length === 0)) && (
+            <div className="p-20 text-center text-gray-400 font-bold uppercase tracking-widest">
+                No Data Found
+            </div>
+          )}
         </div>
       </div>
     </div>
