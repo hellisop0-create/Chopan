@@ -18,7 +18,7 @@ export default function Admin() {
 
   // Check for both Firebase Auth admin and Master Login session
   const isSessionAdmin = sessionStorage.getItem('admin_session_active') === 'true';
-  const isAdmin = isAuthAdmin || isSessionAdmin || user?.email === 'hellisop0@gmail.com';
+  const isAdmin = isAuthAdmin || isSessionAdmin || user?.email === 'saadatali1403@gmail.com';
 
   useEffect(() => {
     if (!authLoading && !isAdmin) {
