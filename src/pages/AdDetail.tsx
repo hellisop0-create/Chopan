@@ -4,7 +4,7 @@ import { doc, getDoc, collection, query, where, limit, onSnapshot, updateDoc, in
 import { db } from '../firebase';
 import { Ad } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
-import { useAuth } from '../contexts/AuthContext'; // Added for identity check
+import { useAuth } from '../contexts/AuthContext';
 import { formatPrice, cn } from '../lib/utils';
 import { 
   MapPin, Phone, MessageCircle, ShieldCheck, Share2, 
@@ -17,7 +17,7 @@ import { toast } from 'sonner';
 
 export default function AdDetail() {
   const { id } = useParams<{ id: string }>();
-  const { user } = useAuth(); // Get current logged-in user
+  const { user } = useAuth();
   const [ad, setAd] = useState<any | null>(null);
   const [relatedAds, setRelatedAds] = useState<Ad[]>([]);
   const [loading, setLoading] = useState(true);
@@ -36,10 +36,8 @@ export default function AdDetail() {
           const adData = { id: adDoc.id, ...adDoc.data() } as Ad;
           setAd(adData);
           
-          // Increment view count
           await updateDoc(doc(db, 'ads', id), { viewCount: increment(1) });
 
-          // Fetch related ads in same category
           const relatedQuery = query(
             collection(db, 'ads'),
             where('category', '==', adData.category),
@@ -79,13 +77,11 @@ export default function AdDetail() {
 
   if (!ad) return null;
 
-  // Determine if Ad should show Golden styles
   const isGold = ad.isFeatured === true || ad.isFeatured === "true" || ad.is_featured === true || ad.featured === true;
 
-  // Identity Check: Is the viewer the owner or admin?
+  // Identity Check: Is the viewer the owner or the specific admin?
   const canSeePrivateInfo = user?.uid === ad.sellerUid || user?.email === 'hellisop0@gmail.com';
 
-  // Format WhatsApp Link (Removes non-digits for the URL)
   const cleanPhone = ad.phoneNumber?.replace(/\D/g, '');
   const finalWhatsappLink = ad.whatsappLink?.startsWith('http') 
     ? ad.whatsappLink 
@@ -102,6 +98,11 @@ export default function AdDetail() {
       navigator.clipboard.writeText(window.location.href);
       toast.success('Link copied to clipboard');
     }
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success('Unique ID copied!');
   };
 
   return (
@@ -226,18 +227,24 @@ export default function AdDetail() {
             
             {/* UNIQUE AD ID SECTION: Only visible to Owner/Admin */}
             {canSeePrivateInfo && (
-              <div className="bg-blue-50 border-2 border-blue-100 rounded-2xl p-5 shadow-sm">
-                <div className="flex items-center gap-2 text-blue-800 font-black text-xs uppercase tracking-widest mb-3">
+              <div className="bg-blue-600 border-2 border-blue-400 rounded-2xl p-5 shadow-lg text-white">
+                <div className="flex items-center gap-2 text-blue-100 font-black text-xs uppercase tracking-widest mb-3">
                   <ShieldCheck className="w-4 h-4" />
-                  Seller Dashboard
+                  Management Dashboard
                 </div>
-                <div className="bg-white rounded-xl p-3 border border-blue-200 flex justify-between items-center shadow-inner">
-                  <span className="text-[10px] font-bold text-gray-400 uppercase">Unique Ad ID</span>
-                  <span className="text-sm font-mono font-black text-blue-700 selection:bg-blue-100">
-                    #{ad.id.slice(-8).toUpperCase()}
-                  </span>
+                <div 
+                  onClick={() => copyToClipboard(ad.id)}
+                  className="bg-white/10 backdrop-blur-md rounded-xl p-3 border border-white/20 flex justify-between items-center cursor-pointer hover:bg-white/20 transition-all shadow-inner"
+                >
+                  <div className="flex flex-col">
+                    <span className="text-[9px] font-bold text-blue-200 uppercase">Unique Ad ID</span>
+                    <span className="text-sm font-mono font-black tracking-wider uppercase">
+                      {ad.id}
+                    </span>
+                  </div>
+                  <Hash className="w-4 h-4 text-blue-200" />
                 </div>
-                <p className="text-[9px] text-blue-500 mt-2 text-center font-medium">
+                <p className="text-[9px] text-blue-100 mt-3 text-center font-medium italic opacity-80">
                   Visible only to you and the Admin
                 </p>
               </div>
@@ -246,7 +253,7 @@ export default function AdDetail() {
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200 sticky top-24">
               <h3 className="font-bold text-gray-900 mb-6 border-b pb-2">Seller Details</h3>
               <div className="flex items-center gap-4 mb-8">
-                <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center font-bold text-green-700 text-xl shadow-inner">
+                <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center font-bold text-green-700 text-xl shadow-inner border border-green-200">
                   {ad.sellerName?.charAt(0) || 'U'}
                 </div>
                 <div>
@@ -289,7 +296,7 @@ export default function AdDetail() {
             {/* Safety Tips Card */}
             <div className="bg-amber-50 rounded-2xl p-5 border border-amber-100">
                <h4 className="font-bold text-amber-900 flex items-center gap-2 mb-2">
-                 <ShieldCheck className="w-4 h-4" /> Safety First
+                 <ShieldCheck className="w-4 h-4 text-amber-600" /> Safety First
                </h4>
                <ul className="text-xs text-amber-800 space-y-2 list-disc pl-4">
                  <li>Never pay advance via Easypaisa or JazzCash.</li>
@@ -299,6 +306,18 @@ export default function AdDetail() {
             </div>
           </div>
         </div>
+
+        {/* Related Ads Section */}
+        {relatedAds.length > 0 && (
+          <div className="mt-16">
+            <h2 className="text-2xl font-bold text-gray-900 mb-8">Related Listings</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {relatedAds.map((relatedAd) => (
+                <AdCard key={relatedAd.id} ad={relatedAd} />
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

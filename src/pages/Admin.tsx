@@ -3,7 +3,7 @@ import { collection, onSnapshot, doc, deleteDoc, updateDoc } from 'firebase/fire
 import { db } from '../firebase'; 
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Trash2, ShieldCheck, ShieldAlert, ExternalLink, User as UserIcon } from 'lucide-react';
+import { Trash2, ShieldCheck, ShieldAlert, ExternalLink, User as UserIcon, Hash } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function Admin() {
@@ -15,174 +15,118 @@ export default function Admin() {
 
   useEffect(() => {
     if (!isAdmin) return;
-    const unsubAds = onSnapshot(collection(db, 'ads'), (s) => setAds(s.docs.map(d => ({ id: d.id, ...d.data() }))));
-    const unsubUsers = onSnapshot(collection(db, 'users'), (s) => setUsers(s.docs.map(d => ({ uid: d.id, ...d.data() }))));
+
+    // Listen to Ads with Unique ID mapping
+    const unsubAds = onSnapshot(collection(db, 'ads'), (snapshot) => {
+      setAds(snapshot.docs.map(d => ({ 
+        id: d.id, // Explicitly capturing the Firestore Doc ID
+        ...d.data() 
+      })));
+    });
+
+    // Listen to Users
+    const unsubUsers = onSnapshot(collection(db, 'users'), (snapshot) => {
+      setUsers(snapshot.docs.map(d => ({ 
+        uid: d.id, 
+        ...d.data() 
+      })));
+    });
+
     return () => { unsubAds(); unsubUsers(); };
   }, [isAdmin]);
 
   const handleDeleteAd = async (adId: string) => {
-    if (!window.confirm('Are you sure you want to delete this ad?')) return;
+    if (!window.confirm('Permanent Delete? This cannot be undone.')) return;
     try {
       await deleteDoc(doc(db, 'ads', adId));
-      toast.success('Ad deleted successfully');
+      toast.success('Ad removed from database');
     } catch (error) {
-      toast.error('Failed to delete ad');
+      toast.error('Delete failed');
     }
   };
 
-  const toggleUserVerification = async (userId: string, currentStatus: boolean) => {
-    try {
-      await updateDoc(doc(db, 'users', userId), {
-        isVerified: !currentStatus
-      });
-      toast.success(`User ${!currentStatus ? 'verified' : 'unverified'} successfully`);
-    } catch (error) {
-      toast.error('Failed to update user status');
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
-      </div>
-    );
-  }
+  if (loading) return <div className="min-h-screen flex items-center justify-center font-bold text-green-700">Loading Cloud Data...</div>;
 
   if (!isAdmin) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100 p-6">
-        <div className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-sm text-center">
-          <h2 className="text-xl font-bold mb-4 text-red-600">🔒 Access Denied</h2>
-          <p className="text-gray-600 mb-6">You do not have administrative privileges to view this page.</p>
-          <button 
-            onClick={() => navigate('/')}
-            className="w-full bg-green-600 text-white font-bold py-3 rounded-lg hover:bg-green-700 transition-colors"
-          >
-            Return to Home
-          </button>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
+        <div className="bg-white p-8 rounded-2xl shadow-xl max-w-sm w-full text-center border-t-4 border-red-500">
+          <h2 className="text-2xl font-black mb-2 text-gray-900">Restricted Area</h2>
+          <p className="text-gray-500 mb-6 text-sm">Admin privileges required for hellisop0@gmail.com</p>
+          <button onClick={() => navigate('/')} className="w-full bg-gray-900 text-white py-3 rounded-xl font-bold">Back to Safety</button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="p-6 max-w-6xl mx-auto font-sans min-h-screen">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+    <div className="p-6 max-w-7xl mx-auto min-h-screen font-sans">
+      <div className="flex flex-col md:flex-row justify-between items-end mb-8 gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">🛡️ Admin Dashboard</h1>
-          <p className="text-gray-500 mt-1">Manage platform content and users</p>
+          <h1 className="text-3xl font-black text-gray-900 tracking-tight">CITYCARE Control</h1>
+          <div className="flex gap-4 mt-2">
+            <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded">Live Ads: {ads.length}</span>
+            <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded">Total Users: {users.length}</span>
+          </div>
         </div>
-        <div className="flex gap-2 bg-gray-200 p-1 rounded-xl">
-          <button 
-            onClick={() => setActiveTab('ads')} 
-            className={`px-6 py-2 rounded-lg font-bold transition-all ${activeTab === 'ads' ? 'bg-white text-green-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-          >
-            Ads ({ads.length})
-          </button>
-          <button 
-            onClick={() => setActiveTab('users')} 
-            className={`px-6 py-2 rounded-lg font-bold transition-all ${activeTab === 'users' ? 'bg-white text-green-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-          >
-            Users ({users.length})
-          </button>
+        <div className="flex bg-gray-100 p-1.5 rounded-2xl border w-full md:w-auto">
+          <button onClick={() => setActiveTab('ads')} className={`flex-1 md:flex-none px-8 py-2.5 rounded-xl font-bold transition-all ${activeTab === 'ads' ? 'bg-white text-green-700 shadow-md' : 'text-gray-400'}`}>Ads</button>
+          <button onClick={() => setActiveTab('users')} className={`flex-1 md:flex-none px-8 py-2.5 rounded-xl font-bold transition-all ${activeTab === 'users' ? 'bg-white text-green-700 shadow-md' : 'text-gray-400'}`}>Users</button>
         </div>
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="p-4 text-xs font-bold text-gray-400 uppercase tracking-wider">{activeTab === 'ads' ? 'Ad Details' : 'User Profile'}</th>
-                <th className="p-4 text-xs font-bold text-gray-400 uppercase tracking-wider">{activeTab === 'ads' ? 'Seller' : 'Contact'}</th>
-                <th className="p-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Status / Actions</th>
+      <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+        <table className="w-full text-left">
+          <thead className="bg-gray-50/50 border-b border-gray-100">
+            <tr>
+              <th className="p-5 text-[10px] font-black uppercase text-gray-400 tracking-widest">{activeTab === 'ads' ? 'Listing & ID' : 'User Profile'}</th>
+              <th className="p-5 text-[10px] font-black uppercase text-gray-400 tracking-widest">{activeTab === 'ads' ? 'Seller Name' : 'Email Address'}</th>
+              <th className="p-5 text-[10px] font-black uppercase text-gray-400 tracking-widest">Management</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-50">
+            {activeTab === 'ads' ? ads.map(ad => (
+              <tr key={ad.id} className="hover:bg-gray-50/50 transition-colors">
+                <td className="p-5">
+                  <div className="font-bold text-gray-900 leading-tight">{ad.title}</div>
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <Hash size={10} className="text-blue-400" />
+                    <span className="text-[10px] font-mono font-bold text-blue-500 uppercase">{ad.id}</span>
+                  </div>
+                </td>
+                <td className="p-5 text-sm font-medium text-gray-600 italic">{ad.sellerName || 'Pending...'}</td>
+                <td className="p-5">
+                  <div className="flex gap-2">
+                    <Link to={`/ad/${ad.id}`} className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"><ExternalLink size={18} /></Link>
+                    <button onClick={() => handleDeleteAd(ad.id)} className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"><Trash2 size={18} /></button>
+                  </div>
+                </td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {activeTab === 'ads' ? (
-                ads.length > 0 ? ads.map(ad => (
-                  <tr key={ad.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="p-4">
-                      <div className="flex flex-col">
-                        <span className="font-bold text-gray-900">{ad.title}</span>
-                        <span className="text-xs text-gray-400 font-mono">ID: {ad.id}</span>
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <div className="flex flex-col">
-                        <span className="text-sm font-medium text-gray-700">{ad.sellerName || 'Anonymous'}</span>
-                        <span className="text-xs text-gray-400">{ad.category}</span>
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <div className="flex items-center gap-3">
-                        <Link 
-                          to={`/ad/${ad.id}`} 
-                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                          title="View Ad"
-                        >
-                          <ExternalLink size={18} />
-                        </Link>
-                        <button 
-                          onClick={() => handleDeleteAd(ad.id)}
-                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                          title="Delete Ad"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                )) : (
-                  <tr>
-                    <td colSpan={3} className="p-12 text-center text-gray-400">No ads found</td>
-                  </tr>
-                )
-              ) : (
-                users.length > 0 ? users.map(u => (
-                  <tr key={u.uid} className="hover:bg-gray-50 transition-colors">
-                    <td className="p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
-                          {u.photoURL ? (
-                            <img src={u.photoURL} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                          ) : (
-                            <UserIcon size={20} className="text-gray-400" />
-                          )}
-                        </div>
-                        <div className="flex flex-col">
-                          <span className="font-bold text-gray-900">{u.displayName || 'Anonymous User'}</span>
-                          <span className="text-xs text-gray-400 font-mono">{u.uid.slice(0, 8)}...</span>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <span className="text-sm text-gray-600">{u.email}</span>
-                    </td>
-                    <td className="p-4">
-                      <button 
-                        onClick={() => toggleUserVerification(u.uid, u.isVerified)}
-                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                          u.isVerified 
-                            ? 'bg-green-100 text-green-700 hover:bg-green-200' 
-                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                        }`}
-                      >
-                        {u.isVerified ? <ShieldCheck size={14} /> : <ShieldAlert size={14} />}
-                        {u.isVerified ? 'VERIFIED' : 'VERIFY USER'}
-                      </button>
-                    </td>
-                  </tr>
-                )) : (
-                  <tr>
-                    <td colSpan={3} className="p-12 text-center text-gray-400">No users found</td>
-                  </tr>
-                )
-              )}
-            </tbody>
-          </table>
-        </div>
+            )) : users.map(u => (
+              <tr key={u.uid} className="hover:bg-gray-50/50 transition-colors">
+                <td className="p-5 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-green-100 border border-green-200 flex items-center justify-center font-black text-green-700 text-xs">
+                    {u.displayName?.charAt(0) || u.email?.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="font-bold text-gray-900 text-sm">{u.displayName || 'Guest User'}</div>
+                </td>
+                <td className="p-5 text-sm text-gray-500 font-medium">{u.email}</td>
+                <td className="p-5">
+                   <button 
+                    onClick={async () => {
+                      await updateDoc(doc(db, 'users', u.uid), { isVerified: !u.isVerified });
+                      toast.success('Status Synced');
+                    }}
+                    className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-black transition-all ${u.isVerified ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'bg-gray-100 text-gray-400'}`}
+                  >
+                    {u.isVerified ? <ShieldCheck size={12} /> : <ShieldAlert size={12} />}
+                    {u.isVerified ? 'VERIFIED' : 'UNVERIFIED'}
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );
