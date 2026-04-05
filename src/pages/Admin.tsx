@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { collection, onSnapshot, doc, deleteDoc, updateDoc } from 'firebase/firestore';
-import { db } from '../firebase';
+import { collection, onSnapshot, doc, deleteDoc, updateDoc, addDoc, serverTimestamp } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { db, storage } from '../firebase';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import {
   Trash2, LayoutDashboard, Users, Star, 
-  CheckCircle2, XCircle, ExternalLink
+  CheckCircle2, XCircle, ExternalLink, ImagePlus, Loader2, Megaphone
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -20,7 +21,12 @@ export default function Admin() {
   const navigate = useNavigate();
   const [ads, setAds] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<'ads' | 'users'>('ads');
+  const [activeTab, setActiveTab] = useState<'ads' | 'users' | 'promotions'>('ads');
+
+  // Ad Manager State
+  const [adImage, setAdImage] = useState<File | null>(null);
+  const [clientLink, setClientLink] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
 
   const currentUserEmail = user?.email?.toLowerCase().trim();
   const isAdmin = isAuthAdmin || (currentUserEmail && ADMIN_EMAILS.includes(currentUserEmail));
@@ -41,6 +47,32 @@ export default function Admin() {
     );
     return () => { unsubAds(); unsubUsers(); };
   }, [isAdmin]);
+
+  const handleRunAd = async () => {
+    if (!adImage || !clientLink) return toast.error("Provide image and link");
+    
+    setIsUploading(true);
+    try {
+      const storageRef = ref(storage, `site-ads/${Date.now()}_${adImage.name}`);
+      await uploadBytes(storageRef, adImage);
+      const imageUrl = await getDownloadURL(storageRef);
+
+      await addDoc(collection(db, "active_ads"), {
+        imageUrl,
+        targetUrl: clientLink,
+        createdAt: serverTimestamp(),
+        isActive: true
+      });
+
+      toast.success("Client ad is now live!");
+      setAdImage(null);
+      setClientLink("");
+    } catch (err) {
+      toast.error("Failed to upload ad");
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const handleUpdateStatus = async (id: string, s: 'active' | 'declined') => {
     try { 
@@ -85,11 +117,61 @@ export default function Admin() {
             <button onClick={() => setActiveTab('users')} className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-black text-[10px] uppercase transition-all ${activeTab === 'users' ? 'bg-green-600 text-white' : 'text-gray-400'}`}>
               <Users size={14} /> Sellers ({users.length})
             </button>
+            <button onClick={() => setActiveTab('promotions')} className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-black text-[10px] uppercase transition-all ${activeTab === 'promotions' ? 'bg-blue-600 text-white' : 'text-gray-400'}`}>
+              <Megaphone size={14} /> Run Ads
+            </button>
           </div>
         </div>
 
+        {/* PROMOTIONS TAB (New Section) */}
+        {activeTab === 'promotions' && (
+          <div className="max-w-xl mx-auto bg-white p-8 rounded-3xl border border-gray-200 shadow-xl">
+            <div className="mb-6">
+              <h2 className="text-xl font-black uppercase text-gray-900">Launch Client Ad</h2>
+              <p className="text-gray-400 text-[10px] font-bold uppercase tracking-tighter text-blue-500">Professional Sponsorship Module</p>
+            </div>
+
+            <div className="space-y-6">
+              <div>
+                <label className="block text-[10px] font-black uppercase text-gray-400 mb-2">Select Ad Banner</label>
+                <div className="border-2 border-dashed border-gray-100 p-6 rounded-2xl flex flex-col items-center hover:border-blue-200 transition-colors bg-gray-50/50">
+                  <ImagePlus className="text-gray-300 mb-2" size={32} />
+                  <input 
+                    type="file" 
+                    accept="image/*"
+                    onChange={(e) => setAdImage(e.target.files?.[0] || null)}
+                    className="text-xs font-bold text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-blue-50 file:text-blue-600"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black uppercase text-gray-400 mb-2">Redirect URL (Client Link)</label>
+                <div className="relative">
+                  <ExternalLink className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                  <input 
+                    type="url" 
+                    placeholder="https://client-website.com"
+                    value={clientLink}
+                    onChange={(e) => setClientLink(e.target.value)}
+                    className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none"
+                  />
+                </div>
+              </div>
+
+              <button 
+                onClick={handleRunAd}
+                disabled={isUploading}
+                className="w-full bg-black text-white py-4 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-gray-800 transition-all disabled:bg-gray-200 flex justify-center items-center gap-2"
+              >
+                {isUploading ? <Loader2 className="animate-spin" size={16} /> : "Activate Campaign"}
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* MOBILE LIST */}
-        <div className="block lg:hidden space-y-3">
+        <div className={`block lg:hidden space-y-3 ${activeTab === 'promotions' ? 'hidden' : ''}`}>
           {activeTab === 'ads' ? ads.map(ad => (
             <div key={ad.id} className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm">
               <div className="flex gap-3 items-start mb-3">
@@ -117,7 +199,7 @@ export default function Admin() {
                 </div>
               </div>
             </div>
-          )) : users.map(u => (
+          )) : activeTab === 'users' ? users.map(u => (
              <div key={u.uid} className="bg-white p-4 rounded-xl border flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   {(u.photoURL || u.image) ? (
@@ -134,11 +216,11 @@ export default function Admin() {
                 </div>
                 <button onClick={() => handleDelete('users', u.uid)} className="text-red-400 p-2"><Trash2 size={18} /></button>
              </div>
-          ))}
+          )) : null}
         </div>
 
         {/* DESKTOP TABLE */}
-        <div className="hidden lg:block bg-white rounded-3xl border border-gray-200 shadow-xl overflow-hidden">
+        <div className={`hidden lg:block bg-white rounded-3xl border border-gray-200 shadow-xl overflow-hidden ${activeTab === 'promotions' ? 'hidden' : ''}`}>
           <table className="w-full text-left">
             <thead className="bg-gray-50 border-b border-gray-100">
               <tr className="text-[10px] font-black uppercase text-gray-400 tracking-widest">

@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { collection, query, where, limit, orderBy, onSnapshot, doc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore'; // Added doc, updateDoc, arrayUnion, arrayRemove
+import { collection, query, where, limit, orderBy, onSnapshot, doc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore'; 
 import { db } from '../firebase';
 import { Ad } from '../types';
 import Hero from '../components/Hero';
-import { useAuth } from '../contexts/AuthContext'; // Added useAuth
+import { useAuth } from '../contexts/AuthContext'; 
 import CategoryGrid from '../components/CategoryGrid';
 import AdCard from '../components/AdCard';
 import { useLanguage } from '../contexts/LanguageContext';
 import { motion } from 'motion/react';
-import { toast } from 'sonner'; // Added toast for feedback
+import { toast } from 'sonner'; 
 
 import { handleFirestoreError, OperationType } from '../lib/firestore-utils';
 
@@ -17,13 +17,13 @@ export default function Home() {
   const [latestAds, setLatestAds] = useState<Ad[]>([]);
   const [loading, setLoading] = useState(true);
   
-  // Local state for heart icons
-  const [favorites, setFavorites] = useState<string[]>([]);
+  // New State for Client Ads
+  const [promoAd, setPromoAd] = useState<any>(null);
   
+  const [favorites, setFavorites] = useState<string[]>([]);
   const { t } = useLanguage();
-  const { user } = useAuth(); // Get the logged-in user
+  const { user } = useAuth();
 
-  // Sync local heart icons with user's stored favorites in Firestore
   useEffect(() => {
     if (user?.favoriteAds) {
       setFavorites(user.favoriteAds);
@@ -32,7 +32,6 @@ export default function Home() {
     }
   }, [user?.favoriteAds]);
 
-  // Updated Toggle function that SAVES to Firebase
   const toggleFavorite = async (adId: string) => {
     if (!user) {
       toast.error('Please login to favorite ads');
@@ -42,7 +41,6 @@ export default function Home() {
     const userRef = doc(db, 'users', user.uid);
     const isCurrentlyFavorite = favorites.includes(adId);
 
-    // 1. Optimistic UI update (change heart immediately)
     setFavorites(prev => 
       isCurrentlyFavorite 
         ? prev.filter(id => id !== adId) 
@@ -50,7 +48,6 @@ export default function Home() {
     );
 
     try {
-      // 2. Permanent Database Update
       await updateDoc(userRef, {
         favoriteAds: isCurrentlyFavorite 
           ? arrayRemove(adId) 
@@ -63,8 +60,6 @@ export default function Home() {
     } catch (error) {
       console.error("Error updating favorites:", error);
       toast.error('Failed to update favorites');
-      
-      // Rollback local state if database update fails
       setFavorites(prev => 
         isCurrentlyFavorite ? [...prev, adId] : prev.filter(id => id !== adId)
       );
@@ -72,7 +67,23 @@ export default function Home() {
   };
 
   useEffect(() => {
-    // Fetch Featured Ads
+    // 1. Fetch Client Promotional Ad (The new ad you created)
+    const promoQuery = query(
+      collection(db, 'active_ads'),
+      where('isActive', '==', true),
+      orderBy('createdAt', 'desc'),
+      limit(1)
+    );
+
+    const unsubscribePromo = onSnapshot(promoQuery, (snapshot) => {
+      if (!snapshot.empty) {
+        setPromoAd({ id: snapshot.docs[0].id, ...snapshot.docs[0].data() });
+      } else {
+        setPromoAd(null);
+      }
+    });
+
+    // 2. Fetch Featured Ads
     const featuredQuery = query(
       collection(db, 'ads'),
       where('status', '==', 'active'),
@@ -86,7 +97,7 @@ export default function Home() {
       handleFirestoreError(error, OperationType.GET, 'ads');
     });
 
-    // Fetch Latest Ads
+    // 3. Fetch Latest Ads
     const latestQuery = query(
       collection(db, 'ads'),
       where('status', '==', 'active'),
@@ -102,6 +113,7 @@ export default function Home() {
     });
 
     return () => {
+      unsubscribePromo();
       unsubscribeFeatured();
       unsubscribeLatest();
     };
@@ -111,6 +123,28 @@ export default function Home() {
     <div className="min-h-screen bg-gray-50">
       <Hero />
       <CategoryGrid />
+
+      {/* NEW PROMOTIONAL AD SECTION */}
+      {promoAd && (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-12">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="relative group overflow-hidden rounded-3xl shadow-lg border border-gray-100"
+          >
+            <a href={promoAd.targetUrl} target="_blank" rel="sponsored noopener noreferrer">
+              <img 
+                src={promoAd.imageUrl} 
+                alt="Sponsored Content" 
+                className="w-full h-auto object-cover max-h-[200px] sm:max-h-[300px] transition-transform duration-700 group-hover:scale-105"
+              />
+              <div className="absolute top-4 right-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest text-gray-900 shadow-sm border border-gray-200">
+                Sponsored
+              </div>
+            </a>
+          </motion.div>
+        </section>
+      )}
 
       {/* Featured Section */}
       {featuredAds.length > 0 && (
