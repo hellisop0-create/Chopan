@@ -2,9 +2,19 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
-import { toast } from 'sonner';
-import { Loader2, Upload, X, ChevronLeft, Image as ImageIcon } from 'lucide-react';
+import { Ad, Category } from '../types';
 import { useAuth } from '../contexts/AuthContext';
+import { toast } from 'sonner';
+import { 
+  Loader2, 
+  Upload, 
+  X, 
+  ChevronLeft, 
+  Image as ImageIcon,
+  Save
+} from 'lucide-react';
+
+const CATEGORIES: Category[] = ['Cow', 'Buffalo', 'Goat', 'Sheep', 'Camel', 'Others'];
 
 export default function EditAd() {
   const { id } = useParams();
@@ -14,45 +24,55 @@ export default function EditAd() {
 
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
-  
-  // Form State
+  const [uploadingImages, setUploadingImages] = useState(false);
+
+  // Form State matching your Ad interface exactly
   const [formData, setFormData] = useState({
     title: '',
-    price: '',
     description: '',
-    category: '',
-    location: '',
+    price: '',
+    category: 'Cow' as Category,
+    breed: '',
+    age: '',
+    weight: '',
+    healthCondition: '',
+    city: '',
+    area: '',
     phoneNumber: '',
+    whatsappLink: '',
     images: [] as string[]
   });
 
-  const [uploadingImages, setUploadingImages] = useState(false);
-
-  // 1. Fetch existing Ad Data on Mount
   useEffect(() => {
-    const fetchAdData = async () => {
-      if (!id) return;
+    const fetchAd = async () => {
+      if (!id || !user) return;
       try {
         const docRef = doc(db, 'ads', id);
         const docSnap = await getDoc(docRef);
-        
+
         if (docSnap.exists()) {
-          const data = docSnap.data();
+          const data = docSnap.data() as Ad;
           
-          // Security Check: Only the owner can edit
-          if (data.sellerUid !== user?.uid) {
-            toast.error("Unauthorized access");
+          // Security: Only owner can edit
+          if (data.sellerUid !== user.uid) {
+            toast.error("You do not have permission to edit this ad");
             navigate('/profile');
             return;
           }
 
           setFormData({
             title: data.title || '',
-            price: data.price || '',
             description: data.description || '',
-            category: data.category || '',
-            location: data.location || '',
+            price: data.price.toString() || '',
+            category: data.category || 'Cow',
+            breed: data.breed || '',
+            age: data.age || '',
+            weight: data.weight || '',
+            healthCondition: data.healthCondition || '',
+            city: data.city || '',
+            area: data.area || '',
             phoneNumber: data.phoneNumber || '',
+            whatsappLink: data.whatsappLink || '',
             images: data.images || []
           });
         } else {
@@ -60,61 +80,56 @@ export default function EditAd() {
           navigate('/profile');
         }
       } catch (error) {
-        console.error("Error fetching ad:", error);
-        toast.error("Failed to load ad data");
+        toast.error("Error loading ad data");
       } finally {
         setLoading(false);
       }
     };
-
-    if (user) fetchAdData();
+    fetchAd();
   }, [id, user, navigate]);
 
-  // 2. Handle Image Upload to Cloudinary
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
 
     setUploadingImages(true);
-    const uploadedUrls: string[] = [...formData.images];
+    const newImages = [...formData.images];
+    const API_KEY = 'YOUR_IMGBB_API_KEY'; // Replace with your actual ImgBB Key
 
     try {
       for (let i = 0; i < files.length; i++) {
-        const fileData = new FormData();
-        fileData.append('file', files[i]);
-        fileData.append('upload_preset', 'your_preset_name'); // Replace with your actual Cloudinary preset
-
-        const res = await fetch(
-          `https://api.cloudinary.com/v1_1/your_cloud_name/image/upload`, // Replace with your cloud name
-          { method: 'POST', body: fileData }
-        );
-        const file = await res.json();
-        uploadedUrls.push(file.secure_url);
+        const body = new FormData();
+        body.append('image', files[i]);
+        
+        const res = await fetch(`https://api.imgbb.com/1/upload?key=${API_KEY}`, {
+          method: 'POST',
+          body: body
+        });
+        const data = await res.json();
+        if (data.success) {
+          newImages.push(data.data.url);
+        }
       }
-      setFormData({ ...formData, images: uploadedUrls });
-      toast.success("Images uploaded successfully");
+      setFormData({ ...formData, images: newImages });
+      toast.success("Images uploaded");
     } catch (err) {
-      toast.error("Failed to upload images");
+      toast.error("Image upload failed");
     } finally {
       setUploadingImages(false);
     }
   };
 
-  const removeImage = (indexToRemove: number) => {
+  const removeImage = (index: number) => {
     setFormData({
       ...formData,
-      images: formData.images.filter((_, index) => index !== indexToRemove)
+      images: formData.images.filter((_, i) => i !== index)
     });
   };
 
-  // 3. Handle Form Submission (Update Firestore)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!id) return;
-    if (formData.images.length === 0) {
-      toast.error("Please include at least one image");
-      return;
-    }
+    if (formData.images.length === 0) return toast.error("Add at least one image");
 
     setUpdating(true);
     try {
@@ -122,162 +137,191 @@ export default function EditAd() {
       await updateDoc(docRef, {
         ...formData,
         price: Number(formData.price),
-        updatedAt: new Date().toISOString(),
-        status: 'pending' // Reset to pending for review after edit
+        status: 'pending', // Re-verify after edit
+        updatedAt: new Date().toISOString()
       });
-
-      toast.success("Ad updated and sent for review!");
+      toast.success("Ad updated successfully!");
       navigate('/profile');
     } catch (error) {
-      console.error("Update error:", error);
       toast.error("Failed to update ad");
     } finally {
       setUpdating(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-10 h-10 text-green-700 animate-spin" />
-      </div>
-    );
-  }
+  if (loading) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin text-green-600" size={40} /></div>;
 
   return (
-    <div className="min-h-screen bg-gray-50 py-10">
-      <div className="max-w-3xl mx-auto px-4">
-        <button 
-          onClick={() => navigate('/profile')}
-          className="flex items-center text-gray-600 mb-6 hover:text-green-700 transition-colors"
-        >
-          <ChevronLeft className="w-5 h-5" />
-          <span>Back to Profile</span>
+    <div className="min-h-screen bg-gray-50 pb-20 pt-6">
+      <div className="mx-auto max-w-4xl px-4">
+        <button onClick={() => navigate(-1)} className="mb-6 flex items-center text-gray-600 hover:text-green-700">
+          <ChevronLeft size={20} /> <span>Back</span>
         </button>
 
-        <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
-          <h1 className="text-2xl font-bold text-gray-900 mb-8">Edit Ad Details</h1>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm sm:p-10">
+            <h1 className="mb-8 text-2xl font-bold text-gray-900">Edit Your Listing</h1>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            
-            {/* Title */}
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">Title</label>
-              <input 
-                type="text"
-                required
-                className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-green-500 outline-none"
-                value={formData.title}
-                onChange={(e) => setFormData({...formData, title: e.target.value})}
-              />
-            </div>
-
-            {/* Price & Category Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">Price (PKR)</label>
+            {/* Basic Info */}
+            <div className="grid gap-6 md:grid-cols-2">
+              <div className="md:col-span-2">
+                <label className="mb-2 block text-sm font-bold text-gray-700">Ad Title</label>
                 <input 
-                  type="number"
                   required
-                  className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-green-500 outline-none"
+                  className="w-full rounded-2xl border bg-gray-50 p-4 outline-none focus:ring-2 focus:ring-green-500"
+                  value={formData.title}
+                  onChange={(e) => setFormData({...formData, title: e.target.value})}
+                  placeholder="e.g. Beautiful Sahiwal Cow for Sale"
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-bold text-gray-700">Category</label>
+                <select 
+                  className="w-full rounded-2xl border bg-gray-50 p-4 outline-none focus:ring-2 focus:ring-green-500"
+                  value={formData.category}
+                  onChange={(e) => setFormData({...formData, category: e.target.value as Category})}
+                >
+                  {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-bold text-gray-700">Price (PKR)</label>
+                <input 
+                  type="number" required
+                  className="w-full rounded-2xl border bg-gray-50 p-4 outline-none focus:ring-2 focus:ring-green-500"
                   value={formData.price}
                   onChange={(e) => setFormData({...formData, price: e.target.value})}
                 />
               </div>
+            </div>
+
+            {/* Livestock Details */}
+            <div className="mt-8 grid gap-6 md:grid-cols-2">
+              <h2 className="md:col-span-2 text-lg font-bold text-green-700 border-b pb-2">Animal Details</h2>
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">Category</label>
-                <select 
-                  className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-green-500 outline-none"
-                  value={formData.category}
-                  onChange={(e) => setFormData({...formData, category: e.target.value})}
-                >
-                  <option value="Birds">Birds</option>
-                  <option value="Cats">Cats</option>
-                  <option value="Dogs">Dogs</option>
-                  <option value="Other">Other</option>
-                </select>
+                <label className="mb-2 block text-sm font-bold text-gray-700">Breed</label>
+                <input 
+                  className="w-full rounded-2xl border bg-gray-50 p-4 outline-none focus:ring-2 focus:ring-green-500"
+                  value={formData.breed}
+                  onChange={(e) => setFormData({...formData, breed: e.target.value})}
+                  placeholder="e.g. Sahiwal, Gulabi"
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-bold text-gray-700">Age</label>
+                <input 
+                  className="w-full rounded-2xl border bg-gray-50 p-4 outline-none focus:ring-2 focus:ring-green-500"
+                  value={formData.age}
+                  onChange={(e) => setFormData({...formData, age: e.target.value})}
+                  placeholder="e.g. 2 Years"
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-bold text-gray-700">Weight (KG)</label>
+                <input 
+                  className="w-full rounded-2xl border bg-gray-50 p-4 outline-none focus:ring-2 focus:ring-green-500"
+                  value={formData.weight}
+                  onChange={(e) => setFormData({...formData, weight: e.target.value})}
+                  placeholder="e.g. 250kg"
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-bold text-gray-700">Health Condition</label>
+                <input 
+                  className="w-full rounded-2xl border bg-gray-50 p-4 outline-none focus:ring-2 focus:ring-green-500"
+                  value={formData.healthCondition}
+                  onChange={(e) => setFormData({...formData, healthCondition: e.target.value})}
+                  placeholder="e.g. Fully Vaccinated"
+                />
               </div>
             </div>
 
+            {/* Location & Contact */}
+            <div className="mt-8 grid gap-6 md:grid-cols-2">
+              <h2 className="md:col-span-2 text-lg font-bold text-green-700 border-b pb-2">Location & Contact</h2>
+              <div>
+                <label className="mb-2 block text-sm font-bold text-gray-700">City</label>
+                <input required
+                  className="w-full rounded-2xl border bg-gray-50 p-4 outline-none focus:ring-2 focus:ring-green-500"
+                  value={formData.city}
+                  onChange={(e) => setFormData({...formData, city: e.target.value})}
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-bold text-gray-700">Area</label>
+                <input required
+                  className="w-full rounded-2xl border bg-gray-50 p-4 outline-none focus:ring-2 focus:ring-green-500"
+                  value={formData.area}
+                  onChange={(e) => setFormData({...formData, area: e.target.value})}
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-bold text-gray-700">Phone Number</label>
+                <input required
+                  className="w-full rounded-2xl border bg-gray-50 p-4 outline-none focus:ring-2 focus:ring-green-500"
+                  value={formData.phoneNumber}
+                  onChange={(e) => setFormData({...formData, phoneNumber: e.target.value})}
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-bold text-gray-700">WhatsApp Link</label>
+                <input 
+                  className="w-full rounded-2xl border bg-gray-50 p-4 outline-none focus:ring-2 focus:ring-green-500"
+                  value={formData.whatsappLink}
+                  onChange={(e) => setFormData({...formData, whatsappLink: e.target.value})}
+                  placeholder="https://wa.me/..."
+                />
+              </div>
+            </div>
+
+            {/* Images */}
+            <div className="mt-8">
+              <label className="mb-2 block text-sm font-bold text-gray-700">Animal Images</label>
+              <div className="grid grid-cols-3 gap-4 sm:grid-cols-5">
+                {formData.images.map((img, i) => (
+                  <div key={i} className="relative aspect-square rounded-xl border bg-gray-100">
+                    <img src={img} className="h-full w-full rounded-xl object-cover" alt="" />
+                    <button type="button" onClick={() => removeImage(i)} className="absolute -right-2 -top-2 rounded-full bg-red-500 p-1 text-white shadow-lg">
+                      <X size={14} />
+                    </button>
+                  </div>
+                ))}
+                <button 
+                  type="button" 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex aspect-square flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-300 text-gray-400 hover:border-green-500 hover:text-green-500"
+                >
+                  {uploadingImages ? <Loader2 className="animate-spin" /> : <><ImageIcon size={24} /><span className="text-[10px] font-bold">Add Photo</span></>}
+                </button>
+              </div>
+              <input type="file" hidden multiple ref={fileInputRef} onChange={handleImageUpload} accept="image/*" />
+            </div>
+
             {/* Description */}
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">Description</label>
+            <div className="mt-8">
+              <label className="mb-2 block text-sm font-bold text-gray-700">Detailed Description</label>
               <textarea 
-                required
-                rows={5}
-                className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-green-500 outline-none resize-none"
+                required rows={4}
+                className="w-full rounded-2xl border bg-gray-50 p-4 outline-none focus:ring-2 focus:ring-green-500"
                 value={formData.description}
                 onChange={(e) => setFormData({...formData, description: e.target.value})}
               />
             </div>
 
-            {/* Images Section */}
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">Ad Photos</label>
-              <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
-                {formData.images.map((url, index) => (
-                  <div key={index} className="relative aspect-square rounded-2xl overflow-hidden border border-gray-100 group">
-                    <img src={url} alt="" className="w-full h-full object-cover" />
-                    <button 
-                      type="button"
-                      onClick={() => removeImage(index)}
-                      className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </div>
-                ))}
-                
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={uploadingImages}
-                  className="aspect-square rounded-2xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center text-gray-400 hover:border-green-500 hover:text-green-500 transition-all"
-                >
-                  {uploadingImages ? (
-                    <Loader2 className="w-6 h-6 animate-spin" />
-                  ) : (
-                    <>
-                      <ImageIcon className="w-6 h-6 mb-1" />
-                      <span className="text-[10px] font-bold">Add More</span>
-                    </>
-                  )}
-                </button>
-              </div>
-              <input 
-                type="file" 
-                ref={fileInputRef} 
-                className="hidden" 
-                multiple 
-                accept="image/*" 
-                onChange={handleImageUpload} 
-              />
-            </div>
-
-            {/* Submit Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 pt-4">
-              <button
-                type="button"
-                onClick={() => navigate('/profile')}
-                className="flex-1 p-4 bg-gray-100 text-gray-600 rounded-2xl font-bold hover:bg-gray-200 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
+            <div className="mt-10 flex gap-4">
+              <button 
+                type="submit" 
                 disabled={updating || uploadingImages}
-                className="flex-1 p-4 bg-green-700 text-white rounded-2xl font-bold hover:bg-green-800 transition-all shadow-lg shadow-green-200 disabled:opacity-50 disabled:shadow-none"
+                className="flex flex-1 items-center justify-center rounded-2xl bg-green-700 py-4 font-bold text-white shadow-lg shadow-green-100 hover:bg-green-800 disabled:opacity-50"
               >
-                {updating ? (
-                  <span className="flex items-center justify-center">
-                    <Loader2 className="w-5 h-5 animate-spin mr-2" /> Saving Changes...
-                  </span>
-                ) : "Update Ad"}
+                {updating ? <Loader2 className="animate-spin mr-2" /> : <Save className="mr-2" size={20} />}
+                Update Ad
               </button>
             </div>
-
-          </form>
-        </div>
+          </div>
+        </form>
       </div>
     </div>
   );
