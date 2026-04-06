@@ -1,80 +1,53 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Search, MapPin } from 'lucide-react';
-import { useLanguage } from '../contexts/LanguageContext';
-import { motion } from 'motion/react';
 
-interface HeroProps {
-  searchQuery: string;
-  setSearchQuery: (val: string) => void;
-  selectedCity: string;
-  setSelectedCity: (val: string) => void;
-}
+export default function Hero() {
+  const [query, setQuery] = React.useState("");
+  const [city, setCity] = React.useState("All Pakistan");
+  const navigate = useNavigate();
 
-export default function Hero({ searchQuery, setSearchQuery, selectedCity, setSelectedCity }: HeroProps) {
-  const { t } = useLanguage();
+  const handleSearch = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    
+    // Redirects to /search?q=iphone&location=Lahore
+    const params = new URLSearchParams();
+    if (query) params.append('q', query);
+    if (city !== "All Pakistan") params.append('location', city);
 
-  const handleSearchClick = () => {
-    // Scrolls to the results section so the user knows the search triggered
-    const resultsSection = document.getElementById('results-section');
-    if (resultsSection) {
-      resultsSection.scrollIntoView({ behavior: 'smooth' });
-    }
+    navigate(`/search?${params.toString()}`);
   };
 
   return (
-    <div className="relative bg-green-900 py-16 sm:py-24">
-      <div className="max-w-7xl mx-auto px-4 text-center">
-        <motion.h1 
-          initial={{ opacity: 0, y: 20 }} 
-          animate={{ opacity: 1, y: 0 }} 
-          className="text-4xl sm:text-6xl font-extrabold text-white mb-6"
-        >
-          {t('appName')}
-        </motion.h1>
-
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.95 }} 
-          animate={{ opacity: 1, scale: 1 }} 
-          className="max-w-3xl mx-auto bg-white rounded-2xl shadow-2xl p-2 flex flex-col md:flex-row items-center gap-2"
-        >
-          {/* Search Input */}
-          <div className="flex-1 w-full flex items-center px-4 border-b md:border-b-0 md:border-r border-gray-100">
-            <Search className="text-gray-400 w-5 h-5 mr-2" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={t('search')}
-              className="w-full py-4 focus:outline-none text-gray-700 text-lg"
-            />
-          </div>
-          
-          {/* City Selection */}
-          <div className="w-full md:w-48 flex items-center px-4">
-            <MapPin className="text-gray-400 w-5 h-5 mr-2" />
-            <select 
-              value={selectedCity}
-              onChange={(e) => setSelectedCity(e.target.value)}
-              className="w-full py-4 bg-transparent focus:outline-none text-gray-600 font-medium cursor-pointer"
-            >
-              <option value="All Pakistan">All Pakistan</option>
-              <option value="Lahore">Lahore</option>
-              <option value="Karachi">Karachi</option>
-              <option value="Islamabad">Islamabad</option>
-              <option value="Faisalabad">Faisalabad</option>
-              <option value="Multan">Multan</option>
-            </select>
-          </div>
-
-          {/* The Search Button */}
-          <button 
-            onClick={handleSearchClick}
-            className="w-full md:w-auto bg-orange-500 text-white px-10 py-4 rounded-xl font-bold text-lg hover:bg-orange-600 transition-all active:scale-95"
+    <div className="bg-green-900 py-20">
+      <form onSubmit={handleSearch} className="max-w-3xl mx-auto bg-white rounded-xl p-2 flex flex-col md:flex-row gap-2 shadow-2xl">
+        <div className="flex-1 flex items-center px-4 border-r">
+          <Search className="text-gray-400 mr-2" />
+          <input 
+            type="text" 
+            placeholder="Find Cars, Mobile Phones and more..." 
+            className="w-full p-4 outline-none"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </div>
+        <div className="flex items-center px-4 md:w-48">
+          <MapPin className="text-gray-400 mr-2" />
+          <select 
+            className="bg-transparent outline-none w-full cursor-pointer"
+            value={city}
+            onChange={(e) => setCity(e.target.value)}
           >
-            Search
-          </button>
-        </motion.div>
-      </div>
+            <option>All Pakistan</option>
+            <option>Lahore</option>
+            <option>Karachi</option>
+            <option>Islamabad</option>
+          </select>
+        </div>
+        <button type="submit" className="bg-orange-500 text-white px-10 py-4 rounded-lg font-bold hover:bg-orange-600">
+          Search
+        </button>
+      </form>
     </div>
   );
 }

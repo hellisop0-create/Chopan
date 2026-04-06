@@ -27,6 +27,7 @@ export default function App() {
             <main className="flex-grow">
               <Routes>
                 <Route path="/" element={<Home />} />
+                <Route path="/search" element={<SearchPage />} />
                 <Route path="/browse" element={<Browse />} />
                 <Route path="/ad/:id" element={<AdDetail />} />
                 <Route path="/post-ad" element={<PostAd />} />
