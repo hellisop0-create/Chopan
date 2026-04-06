@@ -10,6 +10,7 @@ import Browse from './pages/Browse';
 import AdDetail from './pages/AdDetail';
 import PostAd from './pages/PostAd';
 import Profile from './pages/Profile';
+import SearchPage from './pages/SearchPage';
 import Admin from './pages/Admin';
 import AdminLogin from './pages/AdminLogin'; // 1. IMPORT THIS
 import ScrollToTop from './components/ScrollToTop';
