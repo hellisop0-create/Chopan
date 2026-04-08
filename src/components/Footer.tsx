@@ -24,8 +24,8 @@ export default function Footer() {
               {t('tagline')}
             </p>
             <div className="flex space-x-4">
-              <a href="#" className="p-2 bg-white/10 rounded-full hover:bg-white/20 transition-colors">
-                <Facebook href="https://www.facebook.com/profile.php?id=61574290478525" className="w-5 h-5" />
+              <a href="https://www.facebook.com/profile.php?id=61574290478525" className="p-2 bg-white/10 rounded-full hover:bg-white/20 transition-colors">
+                <Facebook className="w-5 h-5" />
               </a>
               <a href="#" className="p-2 bg-white/10 rounded-full hover:bg-white/20 transition-colors">
                 <Twitter className="w-5 h-5" />
