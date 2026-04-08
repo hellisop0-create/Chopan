@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { LanguageProvider } from './contexts/LanguageContext';
@@ -21,6 +21,8 @@ import Admin from './pages/Admin';
 import AdminLogin from './pages/AdminLogin';
 
 export default function App() {
+  const [showCaution, setShowCaution] = useState(true);
+
   return (
     <LanguageProvider>
       <AuthProvider>
@@ -28,11 +30,35 @@ export default function App() {
           <ScrollToTop />
 
           <div className="min-h-screen flex flex-col bg-gray-50 font-sans">
+            {/* Caution Popup */}
+            {showCaution && (
+              <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-70 p-4">
+                <div className="bg-white rounded-lg shadow-2xl max-w-md w-full p-6 text-center">
+                  <div className="flex justify-center mb-4">
+                    <div className="bg-amber-100 p-3 rounded-full">
+                      <span className="text-3xl">⚠️</span>
+                    </div>
+                  </div>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-2">Caution Notice</h2>
+                  <p className="text-gray-600 mb-6">
+                    Please ensure you read our safety guidelines before proceeding. 
+                    Always verify listings before making any transactions.
+                  </p>
+                  <button
+                    onClick={() => setShowCaution(false)}
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition-colors duration-200"
+                  >
+                    I Understand
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Header / Navigation */}
             <Navbar />
 
             {/* Main Content Area */}
-            <main className="flex-grow">
+            <main className={`flex-grow ${showCaution ? 'blur-sm pointer-events-none' : ''}`}>
               <Routes>
                 {/* Public Routes */}
                 <Route path="/" element={<Home />} />
