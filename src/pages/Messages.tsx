@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   collection, query, where, orderBy, onSnapshot, 
-  limit, doc, writeBatch, getDocs, getDoc, updateDoc, arrayRemove 
+  limit, doc, writeBatch, getDocs, getDoc, updateDoc, arrayRemove, deleteDoc 
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
@@ -9,7 +9,7 @@ import { sendMessage } from '../lib/chat-service';
 import { 
   Send, ChevronLeft, MessageCircle, 
   MoreVertical, Check, CheckCheck, ExternalLink, MapPin,
-  Ban, LogOut, ShieldAlert
+  Ban, LogOut, ShieldAlert, Trash2
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -22,11 +22,31 @@ export default function Messages() {
   const [activeAd, setActiveAd] = useState<any>(null);
   const [messages, setMessages] = useState<any[]>([]);
   const [inputText, setInputText] = useState('');
-  const [showMenu, setShowMenu] = useState(false);
+  const [showMenu, setShowMenu] = useState(false); // Header menu
+  const [openSidebarMenu, setOpenSidebarMenu] = useState<string | null>(null); // Sidebar menu
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   useEffect(() => { scrollToBottom(); }, [messages]);
+
+  const handleDeleteChat = async (e: React.MouseEvent, chatId: string) => {
+    e.stopPropagation();
+    if (!window.confirm("Delete this chat? This will remove all messages for everyone.")) return;
+
+    try {
+      const messagesSnapshot = await getDocs(collection(db, 'chats', chatId, 'messages'));
+      const batch = writeBatch(db);
+      messagesSnapshot.docs.forEach((msg) => batch.delete(msg.ref));
+      await batch.commit();
+
+      await deleteDoc(doc(db, 'chats', chatId));
+      if (activeChat?.id === chatId) setActiveChat(null);
+      setOpenSidebarMenu(null);
+      toast.success("Chat deleted permanently");
+    } catch (error) {
+      toast.error("Failed to delete chat");
+    }
+  };
 
   const handleBlockChat = async () => {
     if (!activeChat || !user) return;
@@ -85,9 +105,37 @@ export default function Messages() {
         <div className="p-6 border-b"><h1 className="text-2xl font-black mb-6">Messages</h1></div>
         <div className="flex-1 overflow-y-auto">
           {chats.map(chat => (
-            <div key={chat.id} onClick={() => setActiveChat(chat)} className={`p-4 mx-2 my-1 rounded-2xl cursor-pointer flex gap-4 ${activeChat?.id === chat.id ? 'bg-green-50' : 'hover:bg-gray-50'}`}>
-              <div className="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center font-bold text-green-700 uppercase">{chat.adTitle?.charAt(0)}</div>
+            <div 
+              key={chat.id} 
+              onClick={() => setActiveChat(chat)} 
+              className={`p-4 mx-2 my-1 rounded-2xl cursor-pointer flex gap-4 relative group ${activeChat?.id === chat.id ? 'bg-green-50' : 'hover:bg-gray-50'}`}
+            >
+              <div className="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center font-bold text-green-700 uppercase flex-shrink-0">{chat.adTitle?.charAt(0)}</div>
               <div className="flex-1 min-w-0"><h3 className="font-bold truncate text-sm">{chat.adTitle}</h3><p className="text-xs text-gray-500 truncate">{chat.lastMessage}</p></div>
+              
+              {/* Sidebar 3-dot Menu */}
+              <div className="relative self-center">
+                <button 
+                  onClick={(e) => { e.stopPropagation(); setOpenSidebarMenu(openSidebarMenu === chat.id ? null : chat.id); }}
+                  className="p-1.5 hover:bg-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <MoreVertical size={16} className="text-gray-400" />
+                </button>
+
+                {openSidebarMenu === chat.id && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={(e) => { e.stopPropagation(); setOpenSidebarMenu(null); }} />
+                    <div className="absolute right-0 mt-2 w-40 bg-white border rounded-xl shadow-xl py-1 z-20">
+                      <button 
+                        onClick={(e) => handleDeleteChat(e, chat.id)}
+                        className="w-full px-4 py-2 text-left text-xs font-bold text-red-600 hover:bg-red-50 flex items-center gap-2"
+                      >
+                        <Trash2 size={14} /> Delete Chat
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           ))}
         </div>
@@ -138,7 +186,7 @@ export default function Messages() {
               )}
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 space-y-4" onClick={() => setShowMenu(false)}>
+            <div className="flex-1 overflow-y-auto p-4 space-y-4" onClick={() => { setShowMenu(false); setOpenSidebarMenu(null); }}>
               {messages.map((msg) => (
                 <div key={msg.id} className={`flex ${msg.senderId === user.uid ? 'justify-end' : 'justify-start'}`}>
                   <div className={`max-w-[80%] p-3 rounded-2xl ${msg.senderId === user.uid ? 'bg-green-700 text-white rounded-tr-none' : 'bg-white text-gray-800 rounded-tl-none border shadow-sm'}`}>
