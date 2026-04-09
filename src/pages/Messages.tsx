@@ -32,11 +32,12 @@ export default function Messages() {
 
   // Unified Cooldown Logic
   const getCooldownStatus = (chat: any) => {
-    if (!chat?.leftAt || !user?.uid || !chat.leftAt[user.uid]) {
-      return { isRestricted: false, remainingHours: 0 };
-    }
+    if (!chat?.leftAt || !user?.uid) return { isRestricted: false, remainingHours: 0 };
+    
+    // Logic to check if the user is restricted based on UID or Name in the map
+    const userLeftAt = chat.leftAt[user.uid] || chat.leftAt[user.displayName || ''];
+    if (!userLeftAt) return { isRestricted: false, remainingHours: 0 };
 
-    const userLeftAt = chat.leftAt[user.uid];
     const leftTime = new Date(userLeftAt).getTime();
     const TWELVE_HOURS = 12 * 60 * 60 * 1000;
     const now = Date.now();
@@ -57,12 +58,14 @@ export default function Messages() {
     if (!window.confirm(warningText)) return;
     
     try {
+      const userName = user.displayName || "Unknown User";
+
+      // Updated: This now uses the Username as the key in Firestore instead of the UID
       await updateDoc(doc(db, 'chats', chatToLeave.id), {
-        [`leftAt.${user.uid}`]: new Date().toISOString()
+        [`leftAt.${userName}`]: new Date().toISOString()
       });
 
-      // Send the specific text that the UI will look for
-      await sendMessage(chatToLeave.id, user.uid, `${user.displayName || 'User'} left the chat`);
+      await sendMessage(chatToLeave.id, user.uid, `${userName} left the chat`);
       
       setOpenSidebarMenu(null);
       setShowMenu(false);
@@ -289,8 +292,6 @@ export default function Messages() {
             <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 md:space-y-6 bg-gray-50/50">
               {messages.map((msg) => {
                 const isMe = msg.senderId === user.uid;
-
-                // Identification logic: if message contains "left the chat"
                 if (msg.text && msg.text.includes('left the chat')) {
                   return (
                     <div key={msg.id} className="flex justify-center my-2">
@@ -300,7 +301,6 @@ export default function Messages() {
                     </div>
                   );
                 }
-
                 return (
                   <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
                     <div className={`max-w-[85%] md:max-w-[75%] p-3 md:p-3.5 rounded-2xl shadow-sm relative ${isMe ? 'bg-green-700 text-white rounded-br-sm' : 'bg-white text-gray-800 rounded-bl-sm border border-gray-100'}`}>
