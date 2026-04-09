@@ -7,9 +7,11 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Camera, MapPin, Phone, AlertCircle, Loader2, X, Image as ImageIcon, Clock } from 'lucide-react';
+import { Camera, MapPin, Phone, AlertCircle, Loader2, X, Image as ImageIcon, Clock, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
+import { handleFirestoreError, OperationType } from '../lib/firestore-utils';
 
+// 1. Updated Schema with hidePhoneNumber
 const adSchema = z.object({
   title: z.string().min(5, 'Title must be at least 5 characters').max(100),
   description: z.string().min(20, 'Description must be at least 20 characters'),
@@ -22,11 +24,10 @@ const adSchema = z.object({
   city: z.string().min(2, 'City is required'),
   area: z.string().min(2, 'Area is required'),
   phoneNumber: z.string().regex(/^(\+92|0)3[0-9]{9}$/, 'Invalid Pakistani phone number'),
+  hidePhoneNumber: z.boolean().default(false), // New Field
 });
 
 type AdFormData = z.infer<typeof adSchema>;
-
-import { handleFirestoreError, OperationType } from '../lib/firestore-utils';
 
 export default function PostAd() {
   const { user } = useAuth();
@@ -43,6 +44,7 @@ export default function PostAd() {
     defaultValues: {
       category: 'Cow',
       phoneNumber: user?.phoneNumber || '',
+      hidePhoneNumber: false, // Default value
     }
   });
 
@@ -178,7 +180,6 @@ export default function PostAd() {
               </div>
             </div>
 
-            {/* SELECTION POPUP */}
             {showPhotoPopup && (
               <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
                 <div className="bg-white w-full max-w-sm rounded-t-[2.5rem] sm:rounded-3xl p-8 shadow-2xl">
@@ -251,17 +252,39 @@ export default function PostAd() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <input {...register('city')} placeholder="City" className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none" />
               <input {...register('area')} placeholder="Area" className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none" />
+              
               <div className="sm:col-span-2 relative">
                 <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <input {...register('phoneNumber')} placeholder="Phone Number (0300...)" className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none" />
                 {errors.phoneNumber && <p className="text-red-500 text-xs mt-1">{errors.phoneNumber.message}</p>}
+              </div>
+
+              {/* HIDE PHONE NUMBER TOGGLE */}
+              <div className="sm:col-span-2 flex items-center justify-between p-4 bg-green-50/50 rounded-2xl border border-green-100">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 bg-green-100 rounded-lg">
+                    <EyeOff className="w-5 h-5 text-green-700" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-bold text-gray-700">Hide Phone Number</span>
+                    <span className="text-xs text-gray-500 font-medium italic text-wrap">Buyers will only see "Hidden by Seller"</span>
+                  </div>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    {...register('hidePhoneNumber')} 
+                    className="sr-only peer" 
+                  />
+                  <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                </label>
               </div>
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-green-700 text-white py-5 rounded-2xl font-black text-xl flex items-center justify-center space-x-3 shadow-xl disabled:opacity-70"
+              className="w-full bg-green-700 text-white py-5 rounded-2xl font-black text-xl flex items-center justify-center space-x-3 shadow-xl disabled:opacity-70 active:scale-[0.98] transition-all"
             >
               {loading ? <Loader2 className="w-7 h-7 animate-spin" /> : <span>Post Advertisement</span>}
             </button>

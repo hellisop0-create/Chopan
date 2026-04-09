@@ -9,7 +9,7 @@ import { formatPrice, cn } from '../lib/utils';
 import { 
   MapPin, Phone, MessageCircle, ShieldCheck, Share2, 
   ChevronLeft, ChevronRight, Flag, Calendar, Weight, 
-  Activity, Info, Crown, Star, Hash 
+  Activity, Info, Crown, Star, Hash, EyeOff 
 } from 'lucide-react';
 import AdCard from '../components/AdCard';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -225,7 +225,7 @@ export default function AdDetail() {
           {/* Sidebar */}
           <div className="space-y-6">
             
-            {/* UNIQUE AD ID SECTION: Only visible to Owner/Admin */}
+            {/* MANAGEMENT DASHBOARD: Only visible to Owner/Admin */}
             {canSeePrivateInfo && (
               <div className="bg-blue-600 border-2 border-blue-400 rounded-2xl p-5 shadow-lg text-white">
                 <div className="flex items-center gap-2 text-blue-100 font-black text-xs uppercase tracking-widest mb-3">
@@ -244,6 +244,12 @@ export default function AdDetail() {
                   </div>
                   <Hash className="w-4 h-4 text-blue-200" />
                 </div>
+                {ad.hidePhoneNumber && (
+                  <div className="mt-3 flex items-center gap-2 text-[10px] bg-red-500/20 p-2 rounded-lg border border-red-400/30">
+                    <EyeOff className="w-3 h-3" />
+                    <span>Your phone number is currently <strong>Hidden</strong> from buyers.</span>
+                  </div>
+                )}
                 <p className="text-[9px] text-blue-100 mt-3 text-center font-medium italic opacity-80">
                   Visible only to you and the Admin
                 </p>
@@ -266,23 +272,40 @@ export default function AdDetail() {
               </div>
               
               <div className="space-y-3">
-                <a 
-                  href={finalWhatsappLink} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="w-full bg-green-600 text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-green-700 transition-all shadow-lg shadow-green-100 active:scale-95"
-                >
-                  <MessageCircle className="w-5 h-5" /> 
-                  WhatsApp Seller
-                </a>
-                
-                <a 
-                  href={`tel:${ad.phoneNumber}`} 
-                  className="w-full border-2 border-green-600 text-green-600 py-4 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-green-50 transition-all active:scale-95"
-                >
-                  <Phone className="w-5 h-5" /> 
-                  Call Now
-                </a>
+                {(!ad.hidePhoneNumber || canSeePrivateInfo) ? (
+                  <>
+                    <a 
+                      href={finalWhatsappLink} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="w-full bg-green-600 text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-green-700 transition-all shadow-lg shadow-green-100 active:scale-95"
+                    >
+                      <MessageCircle className="w-5 h-5" /> 
+                      WhatsApp Seller
+                    </a>
+                    
+                    <a 
+                      href={`tel:${ad.phoneNumber}`} 
+                      className="w-full border-2 border-green-600 text-green-600 py-4 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-green-50 transition-all active:scale-95"
+                    >
+                      <Phone className="w-5 h-5" /> 
+                      Call Now
+                    </a>
+                    {ad.hidePhoneNumber && canSeePrivateInfo && (
+                      <p className="text-[10px] text-center text-orange-600 font-black uppercase tracking-tighter">
+                        Visible to you because you are the owner/admin
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <div className="bg-gray-50 border border-gray-200 rounded-2xl p-6 text-center">
+                    <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <EyeOff className="w-6 h-6 text-gray-400" />
+                    </div>
+                    <p className="text-sm font-bold text-gray-800">Contact Hidden</p>
+                    <p className="text-[11px] text-gray-500 leading-tight">The seller has chosen to keep their phone number private.</p>
+                  </div>
+                )}
 
                 <button 
                   onClick={handleShare}
