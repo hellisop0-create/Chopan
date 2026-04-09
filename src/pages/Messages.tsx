@@ -61,8 +61,8 @@ export default function Messages() {
         [`leftAt.${user.uid}`]: new Date().toISOString()
       });
 
-      // Added: Notify the chat that the user has left
-      await sendMessage(chatToLeave.id, 'system', `${user.displayName || 'User'} left the chat`);
+      // Send the specific text that the UI will look for
+      await sendMessage(chatToLeave.id, user.uid, `${user.displayName || 'User'} left the chat`);
       
       setOpenSidebarMenu(null);
       setShowMenu(false);
@@ -290,8 +290,8 @@ export default function Messages() {
               {messages.map((msg) => {
                 const isMe = msg.senderId === user.uid;
 
-                // Added: Special rendering for system messages
-                if (msg.senderId === 'system') {
+                // Identification logic: if message contains "left the chat"
+                if (msg.text && msg.text.includes('left the chat')) {
                   return (
                     <div key={msg.id} className="flex justify-center my-2">
                       <span className="bg-gray-100 text-gray-500 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-gray-200">
