@@ -68,7 +68,7 @@ export default function AdDetail() {
     fetchAd();
   }, [id, navigate]);
 
-  // Lock scroll when fullscreen is active
+  // Lock scroll when fullscreen is active to prevent background scrolling on mobile
   useEffect(() => {
     if (isFullScreen) {
       document.body.style.overflow = 'hidden';
@@ -89,11 +89,11 @@ export default function AdDetail() {
         ad.sellerUid, 
         ad.id, 
         ad.title,
-        ad.sellerName // <--- Add this 5th argument
+        ad.sellerName 
       );
       navigate('/messages', { state: { selectedChatId: chatId } });
     } catch (error) {
-      console.error("Chat error:", error); // Useful for debugging
+      console.error("Chat error:", error); 
       toast.error("Could not start chat. Please try again.");
     }
   };
@@ -141,7 +141,7 @@ export default function AdDetail() {
     <div className="min-h-screen bg-gray-50 pb-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Breadcrumbs */}
-        <nav className="flex mb-6 text-sm text-gray-500">
+        <nav className="flex mb-6 text-sm text-gray-500 overflow-x-auto whitespace-nowrap scrollbar-hide">
           <Link to="/" className="hover:text-green-700">Home</Link>
           <span className="mx-2">/</span>
           <Link to={`/browse?category=${ad.category}`} className="hover:text-green-700 capitalize">
@@ -173,8 +173,8 @@ export default function AdDetail() {
                       />
                     </AnimatePresence>
                     
-                    {/* Expand Hint */}
-                    <div className="absolute top-4 right-4 p-2 bg-black/40 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                    {/* Expand Hint - Hidden on touch devices usually, shown on hover for desktop */}
+                    <div className="absolute top-4 right-4 p-2 bg-black/40 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity hidden md:block">
                       <Maximize2 className="w-5 h-5" />
                     </div>
 
@@ -185,18 +185,18 @@ export default function AdDetail() {
                             e.stopPropagation();
                             setCurrentImageIndex((p) => (p === 0 ? ad.images.length - 1 : p - 1));
                           }} 
-                          className="absolute left-4 top-1/2 -translate-y-1/2 p-2 bg-white/20 rounded-full text-white hover:bg-white/40 transition-all z-10"
+                          className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 p-2 bg-white/20 rounded-full text-white hover:bg-white/40 transition-all z-10"
                         >
-                          <ChevronLeft className="w-6 h-6" />
+                          <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
                         </button>
                         <button 
                           onClick={(e) => {
                             e.stopPropagation();
                             setCurrentImageIndex((p) => (p === ad.images.length - 1 ? 0 : p + 1));
                           }} 
-                          className="absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-white/20 rounded-full text-white hover:bg-white/40 transition-all z-10"
+                          className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 p-2 bg-white/20 rounded-full text-white hover:bg-white/40 transition-all z-10"
                         >
-                          <ChevronRight className="w-6 h-6" />
+                          <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6" />
                         </button>
                       </>
                     )}
@@ -213,7 +213,7 @@ export default function AdDetail() {
             <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-gray-200">
               <div className="mb-6">
                 <div className="flex flex-wrap items-center gap-3 mb-3">
-                  <h1 className="text-3xl font-bold text-gray-900">{ad.title}</h1>
+                  <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{ad.title}</h1>
                   {isGold && (
                     <div className="flex items-center gap-1.5 bg-gradient-to-r from-yellow-400 to-amber-600 text-white text-[10px] font-black px-4 py-1.5 rounded-full shadow-md uppercase tracking-wider">
                       <Crown className="w-3.5 h-3.5 fill-white" />
@@ -222,7 +222,7 @@ export default function AdDetail() {
                   )}
                 </div>
 
-                <div className="text-3xl font-black text-green-700 mb-4 flex items-center gap-2">
+                <div className="text-2xl sm:text-3xl font-black text-green-700 mb-4 flex items-center gap-2">
                   {formatPrice(ad.price)}
                   {isGold && <Star className="w-6 h-6 text-yellow-500 fill-yellow-500 animate-pulse" />}
                 </div>
@@ -243,28 +243,28 @@ export default function AdDetail() {
                 <div className="bg-gray-50 p-4 rounded-xl text-center border border-gray-100">
                   <Info className="w-5 h-5 mx-auto mb-2 text-green-600" />
                   <div className="text-[10px] text-gray-400 uppercase font-bold">Breed</div>
-                  <div className="font-semibold text-gray-800">{ad.breed || 'N/A'}</div>
+                  <div className="font-semibold text-gray-800 text-sm sm:text-base">{ad.breed || 'N/A'}</div>
                 </div>
                 <div className="bg-gray-50 p-4 rounded-xl text-center border border-gray-100">
                   <Calendar className="w-5 h-5 mx-auto mb-2 text-green-600" />
                   <div className="text-[10px] text-gray-400 uppercase font-bold">Age</div>
-                  <div className="font-semibold text-gray-800">{ad.age || 'N/A'}</div>
+                  <div className="font-semibold text-gray-800 text-sm sm:text-base">{ad.age || 'N/A'}</div>
                 </div>
                 <div className="bg-gray-50 p-4 rounded-xl text-center border border-gray-100">
                   <Weight className="w-5 h-5 mx-auto mb-2 text-green-600" />
                   <div className="text-[10px] text-gray-400 uppercase font-bold">Weight</div>
-                  <div className="font-semibold text-gray-800">{ad.weight || 'N/A'}</div>
+                  <div className="font-semibold text-gray-800 text-sm sm:text-base">{ad.weight || 'N/A'}</div>
                 </div>
                 <div className="bg-gray-50 p-4 rounded-xl text-center border border-gray-100">
                   <Activity className="w-5 h-5 mx-auto mb-2 text-green-600" />
                   <div className="text-[10px] text-gray-400 uppercase font-bold">Health</div>
-                  <div className="font-semibold text-gray-800">{ad.healthCondition || 'Healthy'}</div>
+                  <div className="font-semibold text-gray-800 text-sm sm:text-base">{ad.healthCondition || 'Healthy'}</div>
                 </div>
               </div>
 
               <div className="prose max-w-none">
                 <h3 className="text-xl font-bold mb-4 text-gray-900">Description</h3>
-                <p className="whitespace-pre-wrap text-gray-700 leading-relaxed">{ad.description}</p>
+                <p className="whitespace-pre-wrap text-gray-700 leading-relaxed text-sm sm:text-base">{ad.description}</p>
               </div>
             </div>
           </div>
@@ -281,47 +281,43 @@ export default function AdDetail() {
                   onClick={() => copyToClipboard(ad.id)}
                   className="bg-white/10 backdrop-blur-md rounded-xl p-3 border border-white/20 flex justify-between items-center cursor-pointer hover:bg-white/20 transition-all shadow-inner"
                 >
-                  <div className="flex flex-col">
+                  <div className="flex flex-col overflow-hidden">
                     <span className="text-[9px] font-bold text-blue-200 uppercase">Unique Ad ID</span>
-                    <span className="text-sm font-mono font-black tracking-wider uppercase">
+                    <span className="text-sm font-mono font-black tracking-wider uppercase truncate">
                       {ad.id}
                     </span>
                   </div>
-                  <Hash className="w-4 h-4 text-blue-200" />
+                  <Hash className="w-4 h-4 text-blue-200 shrink-0 ml-2" />
                 </div>
                 {ad.hidePhoneNumber && (
                   <div className="mt-3 flex items-center gap-2 text-[10px] bg-red-500/20 p-2 rounded-lg border border-red-400/30">
-                    <EyeOff className="w-3 h-3" />
-                    <span>Your phone number is currently <strong>Hidden</strong> from buyers.</span>
+                    <EyeOff className="w-3 h-3 shrink-0" />
+                    <span>Your phone number is currently <strong>Hidden</strong>.</span>
                   </div>
                 )}
-                <p className="text-[9px] text-blue-100 mt-3 text-center font-medium italic opacity-80">
-                  Visible only to you and the Admin
-                </p>
               </div>
             )}
 
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200 sticky top-24">
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200 lg:sticky lg:top-24">
               <h3 className="font-bold text-gray-900 mb-6 border-b pb-2">Seller Details</h3>
               <div className="flex items-center gap-4 mb-8">
-                <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center font-bold text-green-700 text-xl shadow-inner border border-green-200">
+                <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center font-bold text-green-700 text-xl shadow-inner border border-green-200 shrink-0">
                   {ad.sellerName?.charAt(0) || 'U'}
                 </div>
-                <div>
-                  <div className="font-bold text-gray-900 flex items-center gap-1">
+                <div className="overflow-hidden">
+                  <div className="font-bold text-gray-900 flex items-center gap-1 truncate">
                     {ad.sellerName} 
-                    <ShieldCheck className="w-4 h-4 text-blue-500" />
+                    <ShieldCheck className="w-4 h-4 text-blue-500 shrink-0" />
                   </div>
                   <div className="text-xs text-gray-500 italic">Verified Mandi Seller</div>
                 </div>
               </div>
               
               <div className="space-y-3">
-                {/* Internal Chat Button */}
                 {!isOwner && (
                   <button 
                     onClick={handleStartChat}
-                    className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 active:scale-95"
+                    className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-blue-700 transition-all shadow-lg active:scale-95"
                   >
                     <MessageSquare className="w-5 h-5" /> 
                     Chat with Seller
@@ -334,7 +330,7 @@ export default function AdDetail() {
                       href={finalWhatsappLink} 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      className="w-full bg-green-600 text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-green-700 transition-all shadow-lg shadow-green-100 active:scale-95"
+                      className="w-full bg-green-600 text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-green-700 transition-all shadow-lg active:scale-95"
                     >
                       <MessageCircle className="w-5 h-5" /> 
                       WhatsApp Seller
@@ -354,7 +350,6 @@ export default function AdDetail() {
                       <EyeOff className="w-6 h-6 text-gray-400" />
                     </div>
                     <p className="text-sm font-bold text-gray-800">Contact Hidden</p>
-                    <p className="text-[11px] text-gray-500 leading-tight">The seller has chosen to keep their phone number private.</p>
                   </div>
                 )}
 
@@ -394,21 +389,22 @@ export default function AdDetail() {
         )}
       </div>
 
-      {/* --- WIDE SCREEN MODAL --- */}
+      {/* --- WIDE SCREEN MODAL (Optimized for Mobile/Tablet) --- */}
       <AnimatePresence>
         {isFullScreen && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[999] bg-black/95 flex items-center justify-center p-4"
+            className="fixed inset-0 z-[999] bg-black flex items-center justify-center p-0 sm:p-4"
             onClick={() => setIsFullScreen(false)}
           >
+            {/* Close Button - Larger touch area for mobile */}
             <button 
-              className="absolute top-6 right-6 text-white p-2 hover:bg-white/10 rounded-full transition-colors z-[1000]"
-              onClick={() => setIsFullScreen(false)}
+              className="absolute top-4 right-4 text-white p-3 bg-black/50 backdrop-blur-md rounded-full transition-colors z-[1001]"
+              onClick={(e) => { e.stopPropagation(); setIsFullScreen(false); }}
             >
-              <X className="w-8 h-8" />
+              <X className="w-6 h-6 sm:w-8 sm:h-8" />
             </button>
 
             {ad.images.length > 1 && (
@@ -418,33 +414,34 @@ export default function AdDetail() {
                     e.stopPropagation();
                     setCurrentImageIndex((p) => (p === 0 ? ad.images.length - 1 : p - 1));
                   }} 
-                  className="absolute left-4 md:left-10 top-1/2 -translate-y-1/2 p-3 bg-white/10 rounded-full text-white hover:bg-white/20 transition-all z-[1000]"
+                  className="absolute left-2 sm:left-6 top-1/2 -translate-y-1/2 p-3 sm:p-4 bg-white/10 backdrop-blur-sm rounded-full text-white hover:bg-white/20 transition-all z-[1001]"
                 >
-                  <ChevronLeft className="w-8 h-8" />
+                  <ChevronLeft className="w-6 h-6 sm:w-8 sm:h-8" />
                 </button>
                 <button 
                   onClick={(e) => {
                     e.stopPropagation();
                     setCurrentImageIndex((p) => (p === ad.images.length - 1 ? 0 : p + 1));
                   }} 
-                  className="absolute right-4 md:right-10 top-1/2 -translate-y-1/2 p-3 bg-white/10 rounded-full text-white hover:bg-white/20 transition-all z-[1000]"
+                  className="absolute right-2 sm:right-6 top-1/2 -translate-y-1/2 p-3 sm:p-4 bg-white/10 backdrop-blur-sm rounded-full text-white hover:bg-white/20 transition-all z-[1001]"
                 >
-                  <ChevronRight className="w-8 h-8" />
+                  <ChevronRight className="w-6 h-6 sm:w-8 sm:h-8" />
                 </button>
               </>
             )}
 
             <motion.img
-              initial={{ scale: 0.9, opacity: 0 }}
+              initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
+              exit={{ scale: 0.95, opacity: 0 }}
               src={ad.images[currentImageIndex]}
               alt={ad.title}
-              className="max-w-full max-h-full object-contain shadow-2xl"
+              className="max-w-full max-h-screen object-contain"
               onClick={(e) => e.stopPropagation()}
             />
             
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-white/70 text-sm font-medium">
+            {/* Image Indicator */}
+            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 px-4 py-1.5 bg-black/50 backdrop-blur-md rounded-full text-white text-xs sm:text-sm font-medium border border-white/10">
               {currentImageIndex + 1} / {ad.images.length}
             </div>
           </motion.div>
