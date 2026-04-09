@@ -189,7 +189,7 @@ export default function Messages() {
         <div className="pt-6 px-6 pb-4 border-b border-gray-100 flex-shrink-0">
           <div className="flex items-center justify-between mb-5">
             <h1 className="text-2xl font-black text-gray-900 tracking-tight">Messages</h1>
-            <Link to="/chats" className="p-2 hover:bg-gray-100 rounded-full text-gray-500 transition-colors">
+            <Link to="/chats" className="md:hidden p-2 hover:bg-gray-100 rounded-full text-gray-500 transition-colors">
               <ArrowLeft size={20} />
             </Link>
           </div>
