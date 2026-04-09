@@ -8,12 +8,12 @@ const categories = [
   { 
     id: 'Cow', 
     image: 'https://i.postimg.cc/KzSQT3Nn/cow.jpg', 
-    color: 'bg-white-100' 
+    color: 'bg-green-100' 
   },
   { 
     id: 'Buffalo', 
     image: 'https://i.postimg.cc/Bv1MtBxQ/buffalo.jpg', 
-    color: 'bg-white-100' 
+    color: 'bg-green-100' 
   },
   { 
     id: 'Goat', 
