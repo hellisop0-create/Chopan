@@ -242,22 +242,22 @@ export default function AdDetail() {
                 <div className="bg-gray-50 p-4 rounded-xl text-center border border-gray-100">
                   <Info className="w-5 h-5 mx-auto mb-2 text-green-600" />
                   <div className="text-[14px] text-gray-400 uppercase font-bold">Breed</div>
-                  <div className="font-semibold text-gray-800 text-[9px] sm:text-base">{ad.breed || 'N/A'}</div>
+                  <div className="font-semibold text-gray-800 text-[12px] sm:text-base">{ad.breed || 'N/A'}</div>
                 </div>
                 <div className="bg-gray-50 p-4 rounded-xl text-center border border-gray-100">
                   <Calendar className="w-5 h-5 mx-auto mb-2 text-green-600" />
-                  <div className="text-[10px] text-gray-400 uppercase font-bold">Age</div>
-                  <div className="font-semibold text-gray-800 text-[9px] sm:text-base">{ad.age || 'N/A'}</div>
+                  <div className="text-[14px] text-gray-400 uppercase font-bold">Age</div>
+                  <div className="font-semibold text-gray-800 text-[12px] sm:text-base">{ad.age || 'N/A'}</div>
                 </div>
                 <div className="bg-gray-50 p-4 rounded-xl text-center border border-gray-100">
                   <Weight className="w-5 h-5 mx-auto mb-2 text-green-600" />
-                  <div className="text-[10px] text-gray-400 uppercase font-bold">Weight</div>
-                  <div className="font-semibold text-gray-800 text-[9px] sm:text-base">{ad.weight || 'N/A'}</div>
+                  <div className="text-[14px] text-gray-400 uppercase font-bold">Weight</div>
+                  <div className="font-semibold text-gray-800 text-[12px] sm:text-base">{ad.weight || 'N/A'}</div>
                 </div>
                 <div className="bg-gray-50 p-4 rounded-xl text-center border border-gray-100">
                   <Activity className="w-5 h-5 mx-auto mb-2 text-green-600" />
-                  <div className="text-[10px] text-gray-400 uppercase font-bold">Health</div>
-                  <div className="font-semibold text-gray-800 text-[9px] sm:text-base">{ad.healthCondition || 'Healthy'}</div>
+                  <div className="text-[14px] text-gray-400 uppercase font-bold">Health</div>
+                  <div className="font-semibold text-gray-800 text-[12px] sm:text-base">{ad.healthCondition || 'Healthy'}</div>
                 </div>
               </div>
 
