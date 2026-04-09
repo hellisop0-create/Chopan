@@ -31,15 +31,15 @@ export default function Messages() {
   const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   useEffect(() => { scrollToBottom(); }, [messages]);
 
-  // FIXED Cooldown Calculation Logic
+  // Logic to calculate if user is in 12h cooldown
   const getCooldownStatus = (chat: any) => {
-    // Check if user and leftAt map exist
-    if (!chat?.leftAt || !user?.uid || !chat.leftAt[user.uid]) {
-      return { isRestricted: false, remainingHours: 0 };
-    }
+    if (!chat?.leftAt || !user?.uid) return { isRestricted: false, remainingHours: 0 };
+    
+    // Accessing the nested object: chat.leftAt[userId]
+    const userLeftAt = chat.leftAt[user.uid];
+    if (!userLeftAt) return { isRestricted: false, remainingHours: 0 };
 
-    const leftTimeStr = chat.leftAt[user.uid];
-    const leftTime = new Date(leftTimeStr).getTime();
+    const leftTime = new Date(userLeftAt).getTime();
     const TWELVE_HOURS = 12 * 60 * 60 * 1000;
     const now = Date.now();
     
@@ -47,7 +47,7 @@ export default function Messages() {
     const isRestricted = diff < TWELVE_HOURS;
     const remainingHours = Math.ceil((TWELVE_HOURS - diff) / (1000 * 60 * 60));
 
-    return { isRestricted: isRestricted === true, remainingHours };
+    return { isRestricted, remainingHours };
   };
 
   const handleDeleteChat = async (e: React.MouseEvent, chatId: string) => {
@@ -87,11 +87,11 @@ export default function Messages() {
     if (!window.confirm(warningText)) return;
     
     try {
+      // Use dot notation to update the specific map key in Firestore
       await updateDoc(doc(db, 'chats', activeChat.id), {
         [`leftAt.${user.uid}`]: new Date().toISOString()
       });
       
-      // We don't null setActiveChat here so the user can immediately see the cooldown state
       setShowMenu(false);
       toast.success("You left the chat. 12h cooldown active.");
     } catch (error) {
@@ -99,20 +99,21 @@ export default function Messages() {
     }
   };
 
+  // Syncs the list of chats and keeps the activeChat state updated in real-time
   useEffect(() => {
     if (!user) return;
     const q = query(collection(db, 'chats'), where('participants', 'array-contains', user.uid), orderBy('updatedAt', 'desc'));
     return onSnapshot(q, (snapshot) => {
-      const updatedChats = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setChats(updatedChats);
+      const allChats = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setChats(allChats);
       
-      // Update active chat if it changes (important for detecting the 'leftAt' change)
+      // Update the activeChat if the document changes in Firestore (e.g., status or leftAt)
       if (activeChat) {
-        const currentActive = updatedChats.find(c => c.id === activeChat.id);
-        if (currentActive) setActiveChat(currentActive);
+        const updatedActive = allChats.find(c => c.id === activeChat.id);
+        if (updatedActive) setActiveChat(updatedActive);
       }
     });
-  }, [user, activeChat?.id]); // Added activeChat.id to refresh when status changes
+  }, [user, activeChat?.id]);
 
   useEffect(() => {
     if (!activeChat?.adId) { setActiveAd(null); return; }
@@ -152,8 +153,6 @@ export default function Messages() {
     <div className="fixed inset-0 flex bg-white z-40 font-sans">
       {/* Sidebar */}
       <div className={`w-full md:w-[380px] border-r border-gray-100 flex flex-col bg-white h-full shadow-sm ${activeChat ? 'hidden md:flex' : 'flex'}`}>
-        
-        {/* Sidebar Header */}
         <div className="pt-6 px-6 pb-4 border-b border-gray-100">
           <h1 className="text-2xl font-black text-gray-900 tracking-tight mb-5">Messages</h1>
           <div className="flex bg-gray-100 p-1 rounded-xl relative">
@@ -169,7 +168,6 @@ export default function Messages() {
           </div>
         </div>
 
-        {/* Chat List */}
         <div className="flex-1 overflow-y-auto pt-2">
           {filteredChats.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-40 text-gray-400 px-6 text-center">
@@ -202,7 +200,6 @@ export default function Messages() {
       <div className={`flex-1 flex flex-col bg-gray-50/30 h-full relative ${!activeChat ? 'hidden md:flex items-center justify-center' : 'flex'}`}>
         {activeChat ? (
           <>
-            {/* Header */}
             <div className="bg-white border-b border-gray-100 shadow-sm z-30">
               <div className="px-6 py-4 flex items-center justify-between relative">
                 <div className="flex items-center gap-3">
@@ -240,7 +237,6 @@ export default function Messages() {
               )}
             </div>
 
-            {/* Chat Messages */}
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
               {messages.map((msg) => {
                 const isMe = msg.senderId === user.uid;
@@ -259,7 +255,6 @@ export default function Messages() {
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Input Area / Cooldown Bar */}
             {activeChat.status === 'blocked' ? (
               <div className="p-5 bg-red-50 text-red-700 border-t flex items-center justify-center gap-3 italic text-xs font-bold uppercase tracking-wider">
                 <ShieldAlert size={18} /> Chat is blocked
