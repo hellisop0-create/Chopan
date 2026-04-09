@@ -20,7 +20,10 @@ export default function ChatFAB() {
       animate={{ scale: 1, opacity: 1, y: 0 }}
       whileHover={{ scale: 1.05 }}
       whileTap={{ scale: 0.95 }}
-      className="fixed bottom-24 right-6 z-[50] md:bottom-10 md:right-10"
+      /* Changed bottom-24 to bottom-6 for mobile/tablet 
+         to keep it at the bottom right. 
+      */
+      className="fixed bottom-6 right-6 z-[50] md:bottom-10 md:right-10"
     >
       <button
         onClick={() => navigate('/messages')}
