@@ -57,6 +57,7 @@ export default function Footer() {
               <li><Link to="/browse?category=Sheep" className="hover:text-white transition-colors">Sheep</Link></li>
               <li><Link to="/browse?category=Camel" className="hover:text-white transition-colors">Camel</Link></li>
               <li><Link to="/browse?category=Others" className="hover:text-white transition-colors">Others</Link></li>
+              <li><Link to="src/pages/ServicesPage.tsx" className="hover:text-white transition-colors">Our Services</Link></li>
             </ul>
           </div>
 
