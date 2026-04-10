@@ -1,7 +1,5 @@
 import React from 'react';
-import { Monitor, TrendingUp, Smartphone, Code } from 'lucide-react'; // Example icons
-
-export default ServicesPage;
+import { Monitor, TrendingUp, Smartphone, Code } from 'lucide-react';
 
 const ServicesPage = () => {
   const services = [

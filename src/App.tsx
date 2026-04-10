@@ -17,7 +17,7 @@ import Home from './pages/Home';
 import Browse from './pages/Browse';
 import AdDetail from './pages/AdDetail';
 import PostAd from './pages/PostAd';
-import EditAd from './pages/EditAd'; 
+import EditAd from './pages/EditAd';
 import Profile from './pages/Profile';
 import SearchPage from './pages/SearchPage';
 import Admin from './pages/Admin';
@@ -33,7 +33,7 @@ export default function App() {
           <ScrollToTop />
 
           <div className="min-h-screen flex flex-col bg-gray-50 font-sans relative">
-            
+
             {/* Caution Popup */}
             {showCaution && (
               <div className="fixed inset-0 z-[9999] flex items-center justify-center backdrop-blur-md bg-white/30 p-4">
@@ -79,12 +79,19 @@ export default function App() {
                 <Route path="/messages" element={<Messages />} />
                 <Route path="/search" element={<SearchPage />} />
                 <Route path="/browse" element={<Browse />} />
+
+                {/* --- ADD THIS EXACTLY --- */}
+                <Route path="/services" element={<ServicesPage />} />
+                {/* ------------------------ */}
+
                 <Route path="/ad/:id" element={<AdDetail />} />
                 <Route path="/post-ad" element={<PostAd />} />
                 <Route path="/edit-ad/:id" element={<EditAd />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/admin-login" element={<AdminLogin />} />
                 <Route path="/admin" element={<Admin />} />
+
+                {/* This is the redirect that is currently catching you */}
                 <Route path="*" element={<Home />} />
               </Routes>
             </main>

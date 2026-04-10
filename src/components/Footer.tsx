@@ -44,11 +44,11 @@ export default function Footer() {
               <li><Link to="/post-ad" className="hover:text-white transition-colors">Post an Ad</Link></li>
               <li><Link to="/browse?featured=true" className="hover:text-white transition-colors">Featured Ads</Link></li>
               <li><Link to="/profile" className="hover:text-white transition-colors">My Account</Link></li>
-               <li>
-                <Link to="./pages/ServicesPage" className="hover:text-white transition-colors">
+              <li>
+                <Link to="/services" className="hover:text-white transition-colors">
                   Our Services
                 </Link>
-                </li>
+              </li>
             </ul>
           </div>
 
