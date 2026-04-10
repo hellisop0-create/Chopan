@@ -115,8 +115,8 @@ export default function AdDetail() {
   const isOwner = user?.uid === ad.sellerUid;
   const canSeePrivateInfo = isOwner || user?.email === 'hellisop0@gmail.com';
   
-  // Verification check supporting both boolean and string types
-  const isVerifiedSeller = ad.isVerified === true || ad.isVerified === "true" || ad.sellerVerified === true || ad.sellerVerified === "true";
+  // Strict truthy check for verification fields
+  const isVerifiedSeller = (ad.isVerified === true || ad.isVerified === "true") || (ad.sellerVerified === true || ad.sellerVerified === "true");
 
   const cleanPhone = ad.phoneNumber?.replace(/\D/g, '');
   const finalWhatsappLink = ad.whatsappLink?.startsWith('http') 
