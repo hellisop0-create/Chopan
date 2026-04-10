@@ -112,10 +112,11 @@ export default function AdDetail() {
   if (!ad) return null;
 
   const isGold = ad.isFeatured === true || ad.isFeatured === "true" || ad.is_featured === true || ad.featured === true;
-  // Check for various possible verification field names
-  const isVerifiedSeller = ad.isVerified === true || ad.sellerVerified === true || ad.verified === true;
   const isOwner = user?.uid === ad.sellerUid;
   const canSeePrivateInfo = isOwner || user?.email === 'hellisop0@gmail.com';
+  
+  // Verification check supporting both boolean and string types
+  const isVerifiedSeller = ad.isVerified === true || ad.isVerified === "true" || ad.sellerVerified === true || ad.sellerVerified === "true";
 
   const cleanPhone = ad.phoneNumber?.replace(/\D/g, '');
   const finalWhatsappLink = ad.whatsappLink?.startsWith('http') 
@@ -307,9 +308,9 @@ export default function AdDetail() {
                   {ad.sellerName?.charAt(0) || 'U'}
                 </div>
                 <div className="overflow-hidden">
-                  <div className="font-bold text-gray-900 flex items-center gap-1 truncate">
+                  <div className="font-bold text-gray-900 flex items-center gap-1.5 truncate">
                     {ad.sellerName} 
-                    {isVerifiedSeller && <BadgeCheck className="w-4 h-4 text-blue-500 shrink-0 fill-blue-500 text-white" />}
+                    {isVerifiedSeller && <BadgeCheck className="w-5 h-5 text-blue-500 fill-blue-500 shrink-0" strokeWidth={2.5} />}
                   </div>
                   <div className="text-xs text-gray-500 italic">Verified Mandi Seller</div>
                 </div>
