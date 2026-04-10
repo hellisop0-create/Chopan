@@ -1,32 +1,28 @@
-import React from 'react';
-import { Monitor, TrendingUp, Smartphone, Code } from 'lucide-react';
+import React, { useState } from 'react';
+import { Megaphone, Star, BadgeCheck, Monitor, TrendingUp, Smartphone, Code, X } from 'lucide-react';
 
 const ServicesPage = () => {
+  const [selectedService, setSelectedService] = useState(null);
+
   const services = [
     {
-      title: "UI/UX Strategy",
-      description: "User-centric designs focused on intuitive navigation and seamless digital experiences that keep visitors engaged.",
-      image: "https://images.unsplash.com/photo-1586717791821-3f44a563eb4c?q=80&w=800&auto=format&fit=crop",
-      icon: <Monitor className="w-6 h-6 text-blue-600" />
+      title: "Paid Advertisements",
+      description: "Boost your reach and visibility with targeted ad campaigns designed to reach the right audience at the right time.",
+      image: "https://i.postimg.cc/85702PPM/www_xyz_com.png",
+      icon: <Megaphone className="w-6 h-6 text-blue-600" />
     },
     {
-      title: "Conversion Optimization",
-      description: "Data-driven layouts designed to turn visitors into customers by optimizing every touchpoint of the user journey.",
+      title: "Featured Ads",
+      description: "Keep your listings at the top of search results and category pages for maximum views and faster conversions.",
       image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=800&auto=format&fit=crop",
-      icon: <TrendingUp className="w-6 h-6 text-green-600" />
+      icon: <Star className="w-6 h-6 text-yellow-500" />
     },
     {
-      title: "Full-Stack Development",
-      description: "Building scalable web applications using modern stacks like React, Firebase, and Vite for lightning-fast performance.",
-      image: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?q=80&w=800&auto=format&fit=crop",
-      icon: <Code className="w-6 h-6 text-purple-600" />
+      title: "Verified Blue Tick Seller",
+      description: "Establish instant credibility and trust with buyers through our professional verification badge and priority support.",
+      image: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?q=80&w=800&auto=format&fit=crop",
+      icon: <BadgeCheck className="w-6 h-6 text-blue-500" />
     },
-    {
-      title: "Mobile App Integration",
-      description: "Extending your web presence to mobile platforms through seamless app conversion and responsive architecture.",
-      image: "https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?q=80&w=800&auto=format&fit=crop",
-      icon: <Smartphone className="w-6 h-6 text-red-600" />
-    }
   ];
 
   return (
@@ -69,13 +65,54 @@ const ServicesPage = () => {
               <p className="text-gray-600 leading-relaxed mb-6">
                 {service.description}
               </p>
-              <button className="text-sm font-bold text-blue-600 hover:text-blue-800 flex items-center gap-2">
+              <button 
+                onClick={() => setSelectedService(service)}
+                className="text-sm font-bold text-blue-600 hover:text-blue-800 flex items-center gap-2"
+              >
                 Learn More <span>&rarr;</span>
               </button>
             </div>
           </div>
         ))}
       </div>
+
+      {/* Popup / Modal */}
+      {selectedService && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
+            <div className="relative h-56">
+              <img 
+                src={selectedService.image} 
+                alt={selectedService.title} 
+                className="w-full h-full object-cover"
+              />
+              <button 
+                onClick={() => setSelectedService(null)}
+                className="absolute top-4 right-4 bg-white/90 p-2 rounded-full text-gray-900 hover:bg-white shadow-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-8">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="bg-blue-50 p-2 rounded-lg">
+                  {selectedService.icon}
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900">{selectedService.title}</h3>
+              </div>
+              <p className="text-gray-600 text-lg leading-relaxed mb-6">
+                {selectedService.description}
+              </p>
+              <button 
+                onClick={() => setSelectedService(null)}
+                className="w-full py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200"
+              >
+                Close Details
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
