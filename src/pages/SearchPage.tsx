@@ -7,6 +7,23 @@ import AdCard from '../components/AdCard';
 import { useLanguage } from '../contexts/LanguageContext';
 import { Search, MapPin, Filter, Package } from 'lucide-react';
 
+// ✅ ADD THIS FUNCTION (OSM API)
+async function searchLocationOSM(query) {
+  if (!query) return [];
+
+  const res = await fetch(
+    `https://nominatim.openstreetmap.org/search?q=${query}, Pakistan&format=json`,
+    {
+      headers: {
+        "User-Agent": "livestock-mandi-app (your@email.com)"
+      }
+    }
+  );
+
+  const data = await res.json();
+  return data.map(item => item.display_name.toLowerCase());
+}
+
 export default function SearchPage() {
   const [searchParams] = useSearchParams();
   const [ads, setAds] = useState<Ad[]>([]);
@@ -18,11 +35,23 @@ export default function SearchPage() {
 
   useEffect(() => {
     setLoading(true);
+
     const q = query(collection(db, 'ads'), where('status', '==', 'active'));
     
-    const unsubscribe = onSnapshot(q, (snapshot) => {
+    const unsubscribe = onSnapshot(q, async (snapshot) => {
       const allAds = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Ad));
       
+      let osmLocations = [];
+
+      // ✅ ONLY call OSM if location exists
+      if (locationTerm && locationTerm !== "All Pakistan") {
+        try {
+          osmLocations = await searchLocationOSM(locationTerm);
+        } catch (err) {
+          console.log("OSM error:", err);
+        }
+      }
+
       const filtered = allAds.filter(ad => {
         const adTitle = (ad.title || "").toLowerCase();
         const adLoc = (ad.location || "").toLowerCase();
@@ -30,10 +59,14 @@ export default function SearchPage() {
         const searchLoc = locationTerm.toLowerCase().trim();
 
         const matchesSearch = adTitle.includes(searchQ);
-        const matchesLocation = !locationTerm || 
-                               locationTerm === "All Pakistan" || 
-                               adLoc.includes(searchLoc) || 
-                               searchLoc.includes(adLoc);
+
+        const matchesLocation =
+          !locationTerm ||
+          locationTerm === "All Pakistan" ||
+          adLoc.includes(searchLoc) ||
+          searchLoc.includes(adLoc) ||
+          // ✅ NEW: match with OSM results
+          osmLocations.some(loc => loc.includes(adLoc) || adLoc.includes(loc));
 
         return matchesSearch && matchesLocation;
       });
