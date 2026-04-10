@@ -1,4 +1,4 @@
-export type Category = 'Cow' | 'Buffalo' | 'Goat' | 'Sheep' | 'Camel' | 'Others';
+export type Category = 'Cattle' | 'Buffalo' | 'Goat' | 'Sheep' | 'Camel' | 'Others';
 
 export interface User {
   uid: string;
