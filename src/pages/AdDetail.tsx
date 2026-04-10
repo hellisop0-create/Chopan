@@ -26,6 +26,7 @@ export default function AdDetail() {
   const [loading, setLoading] = useState(true);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isFullScreen, setIsFullScreen] = useState(false);
+  const [isVerifiedSeller, setIsVerifiedSeller] = useState(false); // New state for verification
   const { t } = useLanguage();
   const navigate = useNavigate();
 
@@ -40,6 +41,16 @@ export default function AdDetail() {
           const adData = { id: adDoc.id, ...adDoc.data() } as Ad;
           setAd(adData);
           
+          // --- NEW: Fetch Seller Verification from 'users' collection ---
+          if (adData.sellerUid) {
+            const sellerDoc = await getDoc(doc(db, 'users', adData.sellerUid));
+            if (sellerDoc.exists()) {
+              const sellerData = sellerDoc.data();
+              setIsVerifiedSeller(sellerData.isVerified === true || sellerData.isVerified === "true");
+            }
+          }
+          // -------------------------------------------------------------
+
           await updateDoc(doc(db, 'ads', id), { viewCount: increment(1) });
 
           const relatedQuery = query(
@@ -115,9 +126,6 @@ export default function AdDetail() {
   const isOwner = user?.uid === ad.sellerUid;
   const canSeePrivateInfo = isOwner || user?.email === 'hellisop0@gmail.com';
   
-  // Strict truthy check for verification fields
-  const isVerifiedSeller = (ad.isVerified === true || ad.isVerified === "true") || (ad.sellerVerified === true || ad.sellerVerified === "true");
-
   const cleanPhone = ad.phoneNumber?.replace(/\D/g, '');
   const finalWhatsappLink = ad.whatsappLink?.startsWith('http') 
     ? ad.whatsappLink 
