@@ -60,9 +60,6 @@ const AdBanner = ({ location }) => {
           alt={ad.title} 
           className="w-full h-auto object-cover transform transition-transform duration-500 group-hover:scale-[1.02]"
         />
-        <div className="absolute top-2 right-2 bg-black/40 backdrop-blur-sm px-2 py-0.5 rounded text-[10px] text-white uppercase tracking-wider">
-          Sponsored
-        </div>
       </div>
     </div>
   );
