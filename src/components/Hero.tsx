@@ -31,7 +31,6 @@ const LOCATION_DATA = {
   }
 };
 
-// Suggestion Popover Component
 const SuggestionList = ({ items, onSelect, visible }) => {
   if (!visible || items.length === 0) return null;
   return (
@@ -40,7 +39,7 @@ const SuggestionList = ({ items, onSelect, visible }) => {
         <div
           key={item}
           onMouseDown={(e) => {
-            e.preventDefault(); // Prevents blur from closing list before selection
+            e.preventDefault();
             onSelect(item);
           }}
           className="px-4 py-2 hover:bg-green-50 cursor-pointer text-left text-sm text-gray-700 font-medium flex justify-between items-center group"
@@ -77,16 +76,18 @@ export default function Hero() {
           const data = await response.json();
           if (data && data.address) {
             const addr = data.address;
-            const cityPart = addr.city || addr.town || addr.village || addr.suburb || "";
-            const statePart = addr.state || "";
-            const formattedAddress = `${cityPart}${cityPart && statePart ? ', ' : ''}${statePart}, Pakistan`;
-            setQuery(formattedAddress);
-          } else {
-            setQuery(`${latitude.toFixed(2)}, ${longitude.toFixed(2)}`);
+            
+            // Map API response to our LOCATION_DATA keys
+            const detectedProvince = addr.state || "";
+            const detectedCity = addr.city || addr.town || addr.village || addr.suburb || "";
+
+            // Update location fields instead of search query
+            if (detectedProvince) setProvince(detectedProvince);
+            if (detectedCity) setCity(detectedCity);
+            setArea(""); // Reset area for precision
           }
         } catch (error) {
           console.error("Geocoding error:", error);
-          setQuery(`${latitude.toFixed(2)}, ${longitude.toFixed(2)}`);
         } finally {
           setIsLocating(false);
         }
@@ -142,6 +143,7 @@ export default function Hero() {
           className="max-w-6xl mx-auto bg-white rounded-2xl p-3 flex flex-col gap-3 shadow-2xl relative z-50"
         >
           <div className="flex flex-col md:flex-row gap-2 w-full">
+            {/* Search Input */}
             <div className="flex-[1.5] flex items-center px-4 border border-gray-100 rounded-xl bg-gray-50">
               <Search className="text-gray-400 w-5 h-5 mr-3" />
               <input 
@@ -160,12 +162,13 @@ export default function Hero() {
               </button>
             </div>
 
+            {/* AI Suggestion Inputs */}
             <div className="flex flex-col md:flex-row gap-2 flex-[2.5]">
               <div className="relative flex-1">
                 <input 
                   type="text"
                   placeholder="Province"
-                  className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none text-gray-600 font-semibold text-sm cursor-text"
+                  className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none text-gray-600 font-semibold text-sm"
                   value={province}
                   onFocus={() => setActiveField('province')}
                   onBlur={() => setActiveField(null)}
@@ -184,7 +187,7 @@ export default function Hero() {
                     <input 
                       type="text"
                       placeholder="City"
-                      className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none text-gray-600 font-semibold text-sm cursor-text"
+                      className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none text-gray-600 font-semibold text-sm"
                       value={city}
                       onFocus={() => setActiveField('city')}
                       onBlur={() => setActiveField(null)}
@@ -205,7 +208,7 @@ export default function Hero() {
                     <input 
                       type="text"
                       placeholder="Area"
-                      className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none text-gray-600 font-semibold text-sm cursor-text"
+                      className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none text-gray-600 font-semibold text-sm"
                       value={area}
                       onFocus={() => setActiveField('area')}
                       onBlur={() => setActiveField(null)}
