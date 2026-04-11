@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, MapPin } from 'lucide-react';
-import { motion } from 'motion/react';
+import { Search, MapPin, Check } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 
 // Simplified Pakistan Location Hierarchy
 const LOCATION_DATA = {
@@ -31,41 +31,55 @@ const LOCATION_DATA = {
   }
 };
 
+// Suggestion Popover Component
+const SuggestionList = ({ items, onSelect, visible }) => {
+  if (!visible || items.length === 0) return null;
+  return (
+    <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl z-50 max-h-48 overflow-y-auto">
+      {items.map((item) => (
+        <div
+          key={item}
+          onClick={() => onSelect(item)}
+          className="px-4 py-3 hover:bg-green-50 cursor-pointer text-left text-sm text-gray-700 font-medium flex justify-between items-center group"
+        >
+          {item}
+          <Check className="w-4 h-4 text-green-600 opacity-0 group-hover:opacity-100" />
+        </div>
+      ))}
+    </div>
+  );
+};
+
 export default function Hero() {
   const [query, setQuery] = useState("");
   const [isLocating, setIsLocating] = useState(false);
   const navigate = useNavigate();
 
-  // OLX Style Cascading States
+  // States
   const [province, setProvince] = useState("");
   const [city, setCity] = useState("");
   const [area, setArea] = useState("");
+  
+  // UI Focus States for suggestions
+  const [activeField, setActiveField] = useState(null);
 
   const handleCurrentLocation = () => {
     if (!navigator.geolocation) {
       alert("Geolocation is not supported by your browser");
       return;
     }
-
     setIsLocating(true);
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords;
-        
         try {
-          // Reverse geocoding using Nominatim (OpenStreetMap)
-          const response = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`
-          );
+          const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`);
           const data = await response.json();
-          
           if (data && data.address) {
             const addr = data.address;
-            // Get city, province/state and country for a readable string
             const cityPart = addr.city || addr.town || addr.village || addr.suburb || "";
             const statePart = addr.state || "";
             const formattedAddress = `${cityPart}${cityPart && statePart ? ', ' : ''}${statePart}, Pakistan`;
-            
             setQuery(formattedAddress);
           } else {
             setQuery(`${latitude.toFixed(2)}, ${longitude.toFixed(2)}`);
@@ -84,38 +98,38 @@ export default function Hero() {
     );
   };
 
-  const handleSearch = (e?: React.FormEvent) => {
+  const handleSearch = (e) => {
     if (e) e.preventDefault();
     const params = new URLSearchParams();
     if (query) params.append('q', query);
-    
-    // Construct final location string based on specific selection
     const locationFinal = area || city || province || "All Pakistan";
     if (locationFinal !== "All Pakistan") params.append('location', locationFinal);
-    
     navigate(`/search?${params.toString()}`);
   };
 
+  // Filter Logic
+  const provinceSuggestions = Object.keys(LOCATION_DATA).filter(p => 
+    p.toLowerCase().includes(province.toLowerCase()) && province !== p
+  );
+
+  const citySuggestions = province && LOCATION_DATA[province] 
+    ? Object.keys(LOCATION_DATA[province]).filter(c => c.toLowerCase().includes(city.toLowerCase()) && city !== c)
+    : [];
+
+  const areaSuggestions = province && city && LOCATION_DATA[province][city]
+    ? LOCATION_DATA[province][city].filter(a => a.toLowerCase().includes(area.toLowerCase()) && area !== a)
+    : [];
+
   return (
     <div className="relative bg-green-900 py-20 overflow-hidden">
-      {/* --- THE OLD PATTERN THEME --- */}
       <div 
         className="absolute inset-0 opacity-10"
-        style={{ 
-          backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)', 
-          backgroundSize: '40px 40px' 
-        }}
+        style={{ backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)', backgroundSize: '40px 40px' }}
       />
-      
-      {/* Bottom Gradient Fade */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 text-center">
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-10"
-        >
+        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-10">
           <h1 className="text-4xl md:text-6xl font-extrabold text-white mb-4 tracking-tight">
             Pakistan Livestock Mandi
           </h1>
@@ -124,7 +138,6 @@ export default function Hero() {
           </p>
         </motion.div>
 
-        {/* --- THE SEARCH BOX --- */}
         <form 
           onSubmit={handleSearch} 
           className="max-w-6xl mx-auto bg-white rounded-2xl p-3 flex flex-col gap-3 shadow-2xl"
@@ -149,52 +162,70 @@ export default function Hero() {
               </button>
             </div>
 
-            {/* OLX Cascading Selectors */}
+            {/* Smart Suggester Group */}
             <div className="flex flex-col md:flex-row gap-2 flex-[2.5]">
-              {/* Province Selector */}
-              <select 
-                className="flex-1 p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none text-gray-600 font-semibold text-sm cursor-pointer"
-                value={province}
-                onChange={(e) => {
-                  setProvince(e.target.value);
-                  setCity(""); 
-                  setArea(""); 
-                }}
-              >
-                <option value="">All Provinces</option>
-                {Object.keys(LOCATION_DATA).map(p => (
-                  <option key={p} value={p}>{p}</option>
-                ))}
-              </select>
+              
+              {/* Province */}
+              <div className="relative flex-1">
+                <input 
+                  type="text"
+                  placeholder="Type Province..."
+                  className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none text-gray-600 font-semibold text-sm"
+                  value={province}
+                  onFocus={() => setActiveField('province')}
+                  onBlur={() => setTimeout(() => setActiveField(null), 200)}
+                  onChange={(e) => { setProvince(e.target.value); setCity(""); setArea(""); }}
+                />
+                <SuggestionList 
+                  items={provinceSuggestions} 
+                  visible={activeField === 'province'} 
+                  onSelect={(val) => { setProvince(val); setActiveField(null); }} 
+                />
+              </div>
 
-              {/* City Selector */}
-              <select 
-                disabled={!province}
-                className="flex-1 p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none text-gray-600 font-semibold text-sm cursor-pointer disabled:opacity-50"
-                value={city}
-                onChange={(e) => {
-                  setCity(e.target.value);
-                  setArea(""); 
-                }}
-              >
-                <option value="">Select City</option>
-                {province && Object.keys(LOCATION_DATA[province]).map(c => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
+              {/* City - Shows only if province has text */}
+              <AnimatePresence>
+                {province && (
+                  <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="relative flex-1">
+                    <input 
+                      type="text"
+                      placeholder="Type City..."
+                      className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none text-gray-600 font-semibold text-sm"
+                      value={city}
+                      onFocus={() => setActiveField('city')}
+                      onBlur={() => setTimeout(() => setActiveField(null), 200)}
+                      onChange={(e) => { setCity(e.target.value); setArea(""); }}
+                    />
+                    <SuggestionList 
+                      items={citySuggestions} 
+                      visible={activeField === 'city'} 
+                      onSelect={(val) => { setCity(val); setActiveField(null); }} 
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
-              {/* Area Selector */}
-              <select 
-                disabled={!city}
-                className="flex-1 p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none text-gray-600 font-semibold text-sm cursor-pointer disabled:opacity-50"
-                value={area}
-                onChange={(e) => setArea(e.target.value)}
-              >
-                <option value="">Select Area</option>
-                {city && LOCATION_DATA[province][city].map(a => (
-                  <option key={a} value={a}>{a}</option>
-                ))}
-              </select>
+              {/* Area - Shows only if city has text */}
+              <AnimatePresence>
+                {city && (
+                  <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="relative flex-1">
+                    <input 
+                      type="text"
+                      placeholder="Type Area..."
+                      className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none text-gray-600 font-semibold text-sm"
+                      value={area}
+                      onFocus={() => setActiveField('area')}
+                      onBlur={() => setTimeout(() => setActiveField(null), 200)}
+                      onChange={(e) => setArea(e.target.value)}
+                    />
+                    <SuggestionList 
+                      items={areaSuggestions} 
+                      visible={activeField === 'area'} 
+                      onSelect={(val) => { setArea(val); setActiveField(null); }} 
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             <button 

@@ -11,7 +11,6 @@ import { motion } from 'motion/react';
 import { toast } from 'sonner'; 
 
 export default function Home() {
-  const [featuredAds, setFeaturedAds] = useState<Ad[]>([]);
   const [latestAds, setLatestAds] = useState<Ad[]>([]);
   const [loading, setLoading] = useState(true);
   const [promoAd, setPromoAd] = useState<any>(null);
@@ -36,11 +35,6 @@ export default function Home() {
       if (!snapshot.empty) setPromoAd({ id: snapshot.docs[0].id, ...snapshot.docs[0].data() });
     });
 
-    const featuredQuery = query(collection(db, 'ads'), where('status', '==', 'active'), where('isFeatured', '==', true), limit(4));
-    const unsubscribeFeatured = onSnapshot(featuredQuery, (snapshot) => {
-      setFeaturedAds(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Ad)));
-    });
-
     const latestQuery = query(collection(db, 'ads'), where('status', '==', 'active'), orderBy('createdAt', 'desc'), limit(100));
     const unsubscribeLatest = onSnapshot(latestQuery, (snapshot) => {
       setLatestAds(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Ad)));
@@ -49,7 +43,6 @@ export default function Home() {
 
     return () => {
       unsubscribePromo();
-      unsubscribeFeatured();
       unsubscribeLatest();
     };
   }, []);
@@ -105,20 +98,6 @@ export default function Home() {
               <img src={promoAd.imageUrl} alt="Ad" className="w-full h-auto object-cover max-h-[300px]" />
             </a>
           </motion.div>
-        </section>
-      )}
-
-      {/* Featured Section (Hide when search is active) */}
-      {featuredAds.length > 0 && !searchQuery && selectedCity === "All Pakistan" && (
-        <section className="py-12 bg-white mb-8">
-          <div className="max-w-7xl mx-auto px-4">
-            <h2 className="text-2xl font-bold mb-8">{t('featured')}</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-              {featuredAds.map(ad => (
-                <AdCard key={ad.id} ad={ad} isFavorite={favorites.includes(ad.id)} onToggleFavorite={() => toggleFavorite(ad.id)} />
-              ))}
-            </div>
-          </div>
         </section>
       )}
 
