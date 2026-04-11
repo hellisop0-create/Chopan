@@ -59,7 +59,6 @@ export default function CategoryGrid() {
                 className={`flex flex-col items-center justify-center p-4 rounded-2xl ${cat.color} hover:shadow-md transition-all border border-transparent hover:border-gray-200 group h-full`}
               >
                 {/* Fixed size Circle Container */}
-                {/* Adjusted Container Sizes */}
                 <div className="w-24 h-24 md:w-40 md:h-40 mb-3 overflow-hidden rounded-full bg-white shadow-sm group-hover:scale-110 transition-transform border border-gray-100">
                   <img
                     src={cat.image}
@@ -78,9 +77,11 @@ export default function CategoryGrid() {
         </div>
       </div>
       
-      {/* AdBanner placed strictly under the category content */}
-      <div className="mt-8">
-        <AdBanner location="below_categories" />
+      {/* FIXED SIZE AdBanner placed strictly under the category content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12">
+        <div className="w-full h-32 md:h-40 overflow-hidden rounded-xl shadow-sm border border-gray-100 bg-white">
+          <AdBanner location="below_categories" />
+        </div>
       </div>
     </section>
   );

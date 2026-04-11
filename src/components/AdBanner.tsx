@@ -50,17 +50,24 @@ const AdBanner = ({ location }) => {
   if (loading || !ad) return null;
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 my-8">
-      <div className="relative rounded-2xl overflow-hidden shadow-sm border border-gray-100 bg-gray-50 flex items-center justify-center h-40 md:h-64">
-        {/* The 'h-40 md:h-64' sets a standard height for the ad box */}
-        
+    /* Centralized Wrapper: Controls the banner size for the whole site */
+    <div className="w-full my-4">
+      <button 
+        onClick={handleAdClick}
+        className="w-full relative rounded-xl overflow-hidden shadow-sm border border-gray-100 bg-white flex items-center justify-center h-32 md:h-40 transition-transform active:scale-[0.98]"
+      >
         <img 
           src={ad.imageUrl} 
-          alt={ad.title} 
-          className="w-full h-full object-cover"
-          /* 'object-contain' ensures the image fits inside without being cropped */
+          alt={ad.title || "Advertisement"} 
+          /* Fixed centering: w-full h-full + object-cover ensures it fills the box perfectly */
+          className="w-full h-full object-cover object-center"
         />
-      </div>
+        
+        {/* Optional 'Ad' badge to make it look professional */}
+        <div className="absolute top-2 right-2 bg-black/20 backdrop-blur-md text-[10px] text-white px-1.5 py-0.5 rounded uppercase tracking-wider font-semibold">
+          Ad
+        </div>
+      </button>
     </div>
   );
 };
