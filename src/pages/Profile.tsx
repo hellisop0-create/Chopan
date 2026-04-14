@@ -37,11 +37,20 @@ export default function Profile() {
   const { t } = useLanguage();
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState<'listings' | 'favorites'>('listings');
+  // Updated Tab State to include 'featured'
+  const [activeTab, setActiveTab] = useState<'listings' | 'favorites' | 'featured'>('listings');
   const [myAds, setMyAds] = useState<Ad[]>([]);
   const [favoriteAds, setFavoriteAds] = useState<Ad[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingFavs, setLoadingFavs] = useState(false);
+
+  // Filter ads for the Featured section
+  const featuredAds = myAds.filter(ad => 
+    ad.isFeatured === true || 
+    ad.featuredStatus === 'pending' || 
+    ad.featuredStatus === 'active' || 
+    ad.featuredStatus === 'declined'
+  );
 
   // Fetch User's Own Listings
   useEffect(() => {
@@ -158,6 +167,18 @@ export default function Profile() {
                 <List className="w-5 h-5" />
                 <span>My Ads</span>
               </button>
+              
+              <button
+                onClick={() => setActiveTab('featured')}
+                className={cn(
+                  "flex-1 py-4 rounded-2xl font-bold flex items-center justify-center space-x-3 transition-all",
+                  activeTab === 'featured' ? "bg-green-700 text-white shadow-lg" : "text-gray-500 hover:bg-gray-50"
+                )}
+              >
+                <Zap className="w-5 h-5" />
+                <span>Featured</span>
+              </button>
+
               <button
                 onClick={() => setActiveTab('favorites')}
                 className={cn(
@@ -239,7 +260,6 @@ export default function Profile() {
 
                             <button
                               onClick={() => {
-                                // Default promotion details - you can customize these
                                 const service = encodeURIComponent("Featured Ad (Weekly)");
                                 const price = encodeURIComponent("1,000 PKR");
                                 navigate(`/billing?adId=${ad.id}&service=${service}&price=${price}`);
@@ -278,6 +298,70 @@ export default function Profile() {
                     <div className="col-span-full bg-white rounded-3xl p-16 text-center border-2 border-dashed border-gray-200">
                       <p className="text-gray-400 font-medium">No ads found. Try posting one!</p>
                       <button onClick={() => navigate('/post')} className="mt-4 bg-green-700 text-white px-6 py-2 rounded-xl font-bold">Post Now</button>
+                    </div>
+                  )}
+                </div>
+              ) : activeTab === 'featured' ? (
+                /* My Featured Ads Tab */
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {featuredAds.length > 0 ? (
+                    featuredAds.map(ad => (
+                      <div key={ad.id} className="bg-white rounded-3xl p-5 shadow-sm border border-gray-100 flex flex-col space-y-5 transition-all hover:shadow-md">
+                        <div className="flex space-x-4">
+                          <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-2xl overflow-hidden flex-shrink-0 bg-gray-50 border border-gray-100 relative">
+                            <img
+                              src={ad.images?.[0] || 'https://via.placeholder.com/300'}
+                              alt=""
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex flex-wrap items-center gap-2 mb-1">
+                              <h4 className="font-bold text-gray-900 truncate text-lg pr-2">{ad.title}</h4>
+                              
+                              {/* STATUS BADGES FOR FEATURED ADS */}
+                              {ad.featuredStatus === 'pending' && (
+                                <span className="bg-amber-50 text-amber-600 text-[10px] px-2 py-1 rounded-lg flex items-center font-bold uppercase tracking-wider border border-amber-100">
+                                  <Clock className="w-3 h-3 mr-1" /> Pending
+                                </span>
+                              )}
+                              {(ad.featuredStatus === 'active' || ad.isFeatured) && (
+                                <span className="bg-green-50 text-green-600 text-[10px] px-2 py-1 rounded-lg flex items-center font-bold uppercase tracking-wider border border-green-100">
+                                  <CheckCircle className="w-3 h-3 mr-1" /> Active
+                                </span>
+                              )}
+                              {ad.featuredStatus === 'declined' && (
+                                <span className="bg-red-50 text-red-600 text-[10px] px-2 py-1 rounded-lg flex items-center font-bold uppercase tracking-wider border border-red-100">
+                                  <Trash2 className="w-3 h-3 mr-1" /> Declined
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-green-700 font-extrabold text-xl">
+                              {ad.price ? `${ad.price.toLocaleString()} PKR` : 'Price on Call'}
+                            </p>
+                            <p className="text-gray-400 text-xs mt-1">ID: {ad.id.slice(0, 8)}</p>
+                          </div>
+                        </div>
+
+                        <div className="pt-4 border-t border-gray-50">
+                          <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-3 flex items-center">
+                            <Settings className="w-3 h-3 mr-1" /> Featured Ad Options
+                          </p>
+                          <div className="grid grid-cols-2 gap-2">
+                            <button onClick={() => navigate(`/ad/${ad.id}`)} className="flex items-center justify-center space-x-1 py-2.5 px-2 bg-gray-50 text-gray-700 rounded-xl text-sm font-bold border border-gray-200">
+                              <Eye className="w-4 h-4" /> <span>View</span>
+                            </button>
+                            <button onClick={() => navigate(`/edit-ad/${ad.id}`)} className="flex items-center justify-center space-x-1 py-2.5 px-2 bg-blue-50 text-blue-700 rounded-xl text-sm font-bold border border-blue-100">
+                              <Edit3 className="w-4 h-4" /> <span>Edit</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="col-span-full bg-white rounded-3xl p-16 text-center border-2 border-dashed border-gray-200">
+                      <Zap className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                      <p className="text-gray-400 font-medium">No featured ads found.</p>
                     </div>
                   )}
                 </div>
