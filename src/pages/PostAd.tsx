@@ -24,7 +24,7 @@ const adSchema = z.object({
   city: z.string().min(2, 'City is required'),
   area: z.string().min(2, 'Area is required'),
   phoneNumber: z.string().regex(/^(\+92|0)3[0-9]{9}$/, 'Invalid Pakistani phone number'),
-  hidePhoneNumber: z.boolean().default(false), // New Field
+  hidePhoneNumber: z.boolean(), // Required in schema
 });
 
 type AdFormData = z.infer<typeof adSchema>;
@@ -240,7 +240,7 @@ export default function PostAd() {
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2">Category</label>
                 <select {...register('category')} className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none">
-                  {['Cattle', 'Buffalo', 'Goat', 'Sheep', 'Camel', 'Others'].map(cat => (
+                  {['Cow', 'Buffalo', 'Goat', 'Sheep', 'Camel', 'Others'].map(cat => (
                     <option key={cat} value={cat}>{cat}</option>
                   ))}
                 </select>

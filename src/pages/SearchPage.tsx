@@ -84,7 +84,7 @@ export default function SearchPage() {
 
       allAds.forEach(ad => {
         const adTitle = (ad.title || "").toLowerCase();
-        const adLoc = (ad.location || "").toLowerCase();
+        const adLoc = (ad.city || "").toLowerCase();
         const searchQ = queryTerm.toLowerCase().trim();
         const searchLoc = locationTerm.toLowerCase().trim();
 

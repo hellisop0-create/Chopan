@@ -1,4 +1,4 @@
-export type Category = 'Cattle' | 'Buffalo' | 'Goat' | 'Sheep' | 'Camel' | 'Others';
+export type Category = 'Cow' | 'Buffalo' | 'Goat' | 'Sheep' | 'Camel' | 'Others';
 
 export interface User {
   uid: string;
@@ -29,7 +29,8 @@ export interface Ad {
   whatsappLink: string;
   sellerUid: string;
   sellerName: string;
-  status: 'pending' | 'active' | 'rejected' | 'expired';
+  status: 'pending' | 'active' | 'rejected' | 'expired' | 'sold';
+  location?: string;
   isFeatured: boolean;
   isUrgent: boolean;
   viewCount: number;

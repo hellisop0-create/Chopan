@@ -123,7 +123,7 @@ export default function BillingPage() {
             }`}>
               <p className="text-xs font-bold text-gray-500 uppercase mb-2 text-center">Transfer Rs. {selectedPlan.price} to:</p>
               <p className="text-2xl font-mono font-bold text-center text-gray-900">0301-3551707</p>
-              <p className="text-sm text-center text-gray-600 font-medium">Account: BetailHub ({paymentMethod})</p>
+              <p className="text-sm text-center text-gray-600 font-medium">Account: Chopan ({paymentMethod})</p>
             </div>
 
             {/* 4. TID Input */}

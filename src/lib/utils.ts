@@ -14,6 +14,6 @@ export function formatPrice(price: number) {
 }
 
 export function generateWhatsAppLink(phone: string, title: string) {
-  const message = encodeURIComponent(`Assalam-o-Alaikum, I am interested in your ad: ${title} on BetailHub.`);
+  const message = encodeURIComponent(`Assalam-o-Alaikum, I am interested in your ad: ${title} on Chopan.`);
   return `https://wa.me/${phone.replace(/\D/g, '')}?text=${message}`;
 }

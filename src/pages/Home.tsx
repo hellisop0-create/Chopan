@@ -58,7 +58,7 @@ export default function Home() {
       
       const matchesSearch = titleMatch || descMatch;
       const matchesCity = selectedCity === "All Pakistan" || 
-                          (ad.location || "").toLowerCase() === selectedCity.toLowerCase();
+                          (ad.city || "").toLowerCase() === selectedCity.toLowerCase();
 
       return matchesSearch && matchesCity;
     })
@@ -84,12 +84,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
-      <Hero 
-        searchQuery={searchQuery} 
-        setSearchQuery={setSearchQuery} 
-        selectedCity={selectedCity} 
-        setSelectedCity={setSelectedCity} 
-      />
+      <Hero />
       
       <CategoryGrid />
 

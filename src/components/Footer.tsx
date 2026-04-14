@@ -75,14 +75,14 @@ export default function Footer() {
               </li>
               <li className="flex items-center space-x-3">
                 <Mail className="w-5 h-5 flex-shrink-0" />
-                <span>support@betailhub.com</span>
+                <span>support@chopan.com</span>
               </li>
             </ul>
           </div>
         </div>
 
         <div className="pt-8 border-t border-white/10 text-center text-green-200 text-xs">
-          <p>&copy; {new Date().getFullYear()} BetailHub. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} Chopan. All rights reserved.</p>
           <p className="mt-2">Designed by DSACSON for high-conversion livestock trading in Pakistan.</p>
         </div>
       </div>
