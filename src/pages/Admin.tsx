@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { collection, onSnapshot, doc, deleteDoc, updateDoc } from 'firebase/firestore';
+import { collection, onSnapshot, doc, deleteDoc, updateDoc, query, orderBy } from 'firebase/firestore';
 import { db } from '../firebase';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import {
   Trash2, LayoutDashboard, Users, Star, 
-  CheckCircle2, XCircle, ExternalLink, Search, BadgeCheck
+  CheckCircle2, XCircle, ExternalLink, Search, BadgeCheck, Wallet
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -20,7 +20,8 @@ export default function Admin() {
   const navigate = useNavigate();
   const [ads, setAds] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<'ads' | 'users'>('ads');
+  const [payments, setPayments] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState<'ads' | 'users' | 'payments'>('ads');
   const [searchId, setSearchId] = useState('');
 
   const currentUserEmail = user?.email?.toLowerCase().trim();
@@ -40,7 +41,10 @@ export default function Admin() {
     const unsubUsers = onSnapshot(collection(db, 'users'), (s) => 
       setUsers(s.docs.map(d => ({ uid: d.id, ...d.data() })))
     );
-    return () => { unsubAds(); unsubUsers(); };
+    const unsubPayments = onSnapshot(query(collection(db, 'payments'), orderBy('createdAt', 'desc')), (s) => 
+      setPayments(s.docs.map(d => ({ id: d.id, ...d.data() })))
+    );
+    return () => { unsubAds(); unsubUsers(); unsubPayments(); };
   }, [isAdmin]);
 
   const filteredAds = useMemo(() => {
@@ -53,6 +57,14 @@ export default function Admin() {
       await updateDoc(doc(db, 'ads', id), { status: s }); 
       toast.success(`Ad marked as ${s}`); 
     } catch { toast.error('Update failed'); }
+  };
+
+  const handleApprovePayment = async (payId: string, adId: string) => {
+    try {
+      await updateDoc(doc(db, 'payments', payId), { status: 'approved' });
+      await updateDoc(doc(db, 'ads', adId), { isFeatured: true, status: 'active' });
+      toast.success('Payment Approved & Ad Featured');
+    } catch { toast.error('Approval failed'); }
   };
 
   const handleToggleFeatured = async (id: string, currentStatus: boolean) => {
@@ -69,7 +81,7 @@ export default function Admin() {
     } catch { toast.error('Failed to update verification'); }
   };
 
-  const handleDelete = async (type: 'ads' | 'users', id: string) => {
+  const handleDelete = async (type: 'ads' | 'users' | 'payments', id: string) => {
     if (!window.confirm('Are you sure? This is permanent.')) return;
     try {
       await deleteDoc(doc(db, type, id));
@@ -110,6 +122,9 @@ export default function Admin() {
             <button onClick={() => setActiveTab('ads')} className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-black text-[10px] uppercase transition-all ${activeTab === 'ads' ? 'bg-green-600 text-white' : 'text-gray-400'}`}>
               <LayoutDashboard size={14} /> Listings ({filteredAds.length})
             </button>
+            <button onClick={() => setActiveTab('payments')} className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-black text-[10px] uppercase transition-all ${activeTab === 'payments' ? 'bg-orange-600 text-white' : 'text-gray-400'}`}>
+              <Wallet size={14} /> Payments ({payments.filter(p => p.status === 'pending').length})
+            </button>
             <button onClick={() => setActiveTab('users')} className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-black text-[10px] uppercase transition-all ${activeTab === 'users' ? 'bg-green-600 text-white' : 'text-gray-400'}`}>
               <Users size={14} /> Sellers ({users.length})
             </button>
@@ -118,7 +133,7 @@ export default function Admin() {
 
         {/* MOBILE LIST */}
         <div className="block lg:hidden space-y-3">
-          {activeTab === 'ads' ? filteredAds.map(ad => (
+          {activeTab === 'ads' && filteredAds.map(ad => (
             <div key={ad.id} className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm">
               <div className="flex gap-3 items-start mb-3">
                 <img src={ad.images?.[0]} className="w-16 h-16 rounded-lg object-cover bg-gray-100 flex-shrink-0 border" />
@@ -146,7 +161,32 @@ export default function Admin() {
                 </div>
               </div>
             </div>
-          )) : users.map(u => (
+          ))}
+
+          {activeTab === 'payments' && payments.map(p => (
+            <div key={p.id} className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm space-y-2">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-[10px] font-bold text-gray-900">{p.sellerEmail}</p>
+                  <p className="text-[9px] text-blue-500 font-mono">TID: {p.tid}</p>
+                </div>
+                <span className={`text-[8px] font-black px-2 py-0.5 rounded border uppercase ${p.paymentPlatform === 'JazzCash' ? 'bg-orange-50 text-orange-600 border-orange-200' : 'bg-green-50 text-green-600 border-green-200'}`}>
+                  {p.paymentPlatform}
+                </span>
+              </div>
+              <div className="flex justify-between items-center pt-2 border-t">
+                <p className="text-xs font-black">Rs {p.amount}</p>
+                <div className="flex gap-2">
+                  {p.status === 'pending' && (
+                    <button onClick={() => handleApprovePayment(p.id, p.adId)} className="p-2 bg-green-600 text-white rounded-lg"><CheckCircle2 size={16} /></button>
+                  )}
+                  <button onClick={() => handleDelete('payments', p.id)} className="p-2 bg-red-50 text-red-600 rounded-lg"><Trash2 size={16} /></button>
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {activeTab === 'users' && users.map(u => (
               <div key={u.uid} className="bg-white p-4 rounded-xl border flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   {(u.photoURL || u.image) ? (
@@ -182,14 +222,14 @@ export default function Admin() {
           <table className="w-full text-left">
             <thead className="bg-gray-50 border-b border-gray-100">
               <tr className="text-[10px] font-black uppercase text-gray-400 tracking-widest">
-                <th className="p-5">{activeTab === 'ads' ? 'Listing' : 'User'}</th>
-                <th className="p-5">{activeTab === 'ads' ? 'Price' : 'Email'}</th>
-                <th className="p-5">Status</th>
+                <th className="p-5">{activeTab === 'ads' ? 'Listing' : activeTab === 'payments' ? 'Seller / TID' : 'User'}</th>
+                <th className="p-5">{activeTab === 'ads' ? 'Price' : activeTab === 'payments' ? 'Platform' : 'Email'}</th>
+                <th className="p-5">{activeTab === 'payments' ? 'Amount' : 'Status'}</th>
                 <th className="p-5 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {activeTab === 'ads' ? filteredAds.map(ad => (
+              {activeTab === 'ads' && filteredAds.map(ad => (
                 <tr key={ad.id} className="hover:bg-gray-50/50 transition-colors">
                   <td className="p-5">
                     <div className="flex items-center gap-4">
@@ -219,7 +259,34 @@ export default function Admin() {
                     </div>
                   </td>
                 </tr>
-              )) : users.map(u => (
+              ))}
+
+              {activeTab === 'payments' && payments.map(p => (
+                <tr key={p.id} className="hover:bg-gray-50/50 transition-colors">
+                  <td className="p-5">
+                    <div className="flex flex-col">
+                      <span className="font-bold text-sm">{p.sellerEmail}</span>
+                      <span className="text-[10px] text-blue-500 font-mono">TID: {p.tid}</span>
+                    </div>
+                  </td>
+                  <td className="p-5 text-sm">
+                    <span className={`text-[9px] font-black px-2 py-0.5 rounded border uppercase ${p.paymentPlatform === 'JazzCash' ? 'bg-orange-50 text-orange-600 border-orange-100' : 'bg-green-50 text-green-600 border-green-100'}`}>
+                      {p.paymentPlatform}
+                    </span>
+                  </td>
+                  <td className="p-5 text-sm font-black text-gray-700">Rs {p.amount}</td>
+                  <td className="p-5 text-right">
+                    <div className="flex justify-end gap-2">
+                      {p.status === 'pending' && (
+                        <button onClick={() => handleApprovePayment(p.id, p.adId)} className="text-green-600 p-1 hover:bg-green-50 rounded" title="Approve"><CheckCircle2 size={18} /></button>
+                      )}
+                      <button onClick={() => handleDelete('payments', p.id)} className="text-red-600 p-1 hover:bg-red-50 rounded"><Trash2 size={18} /></button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+
+              {activeTab === 'users' && users.map(u => (
                 <tr key={u.uid} className="hover:bg-gray-50/50 transition-colors">
                   <td className="p-5">
                     <div className="flex items-center gap-3">
