@@ -4,14 +4,13 @@ import { db } from '../firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
-import { Clock, Zap, PlayCircle, Info } from 'lucide-react';
+import { Clock, Zap, PlayCircle, Info, CheckCircle2 } from 'lucide-react';
 
 export default function BillingPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
-  
   const adId = queryParams.get('adId');
 
   const plans = [
@@ -21,189 +20,166 @@ export default function BillingPage() {
   ];
 
   const [selectedPlan, setSelectedPlan] = useState(plans[1]);
+  const [paymentMethod, setPaymentMethod] = useState<'JazzCash' | 'EasyPaisa'>('JazzCash');
   const [tid, setTid] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!tid) return toast.error("Please enter Transaction ID / ٹرانزیکشن آئی ڈی درج کریں");
+    
+    if (!user) return toast.error("Please login / لاگ ان کریں");
+    if (!tid || tid.length < 8) return toast.error("Invalid TID / درست آئی ڈی درج کریں");
 
     setIsSubmitting(true);
     try {
       await addDoc(collection(db, 'payments'), {
-        adId,
-        serviceTitle: selectedPlan.label,
-        durationDays: selectedPlan.days,
+        adId: adId,
+        sellerUid: user.uid,
+        sellerEmail: user.email,
+        planLabel: selectedPlan.label,
         amount: selectedPlan.price,
-        tid,
-        sellerUid: user?.uid,
-        sellerEmail: user?.email,
+        durationDays: selectedPlan.days,
+        paymentPlatform: paymentMethod, // <--- SAVES JAZZCASH OR EASYPAISA
+        tid: tid.trim(),
         status: 'pending',
         createdAt: serverTimestamp(),
       });
       
-      toast.success("Payment submitted for approval / ادائیگی جمع کر دی گئی ہے");
+      toast.success("Payment submitted! / ادائیگی جمع کر دی گئی ہے");
       navigate('/profile');
     } catch (error) {
+      console.error("Payment Error:", error);
       toast.error("Submission failed / اندراج ناکام رہا");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  if (!adId) return <div className="p-20 text-center font-bold text-red-600">Error: No Ad ID Linked / کوئی اشتہار منتخب نہیں کیا گیا</div>;
+  if (!adId) return <div className="p-20 text-center font-bold">Error: No Ad Linked / اشتہار نہیں ملا</div>;
 
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4">
       <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
         
-        {/* Left Column: Payment Form */}
-        <div className="space-y-6 order-2 lg:order-1">
-          <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100">
-            <div className="bg-green-700 p-6 text-white text-center">
-              <h1 className="text-xl font-bold uppercase tracking-wide">Checkout</h1>
-              <h2 className="text-lg font-medium mt-1" dir="rtl">ادائیگی کا طریقہ</h2>
-            </div>
+        {/* Left Column: Form */}
+        <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100 flex flex-col h-fit">
+          <div className="bg-green-700 p-6 text-white text-center">
+            <h1 className="text-xl font-bold uppercase tracking-wide">Secure Checkout</h1>
+            <p className="text-sm opacity-90 font-medium" dir="rtl">محفوظ ادائیگی</p>
+          </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-6">
-              {/* Plan Selector */}
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <h3 className="font-bold text-gray-900 text-sm flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-green-700" /> Select Plan
-                  </h3>
-                  <h3 className="font-bold text-gray-900 text-sm" dir="rtl">پلان منتخب کریں</h3>
-                </div>
-                
-                <div className="grid grid-cols-1 gap-3">
-                  {plans.map((plan) => (
-                    <div 
-                      key={plan.id}
-                      onClick={() => setSelectedPlan(plan)}
-                      className={`p-4 border-2 rounded-2xl cursor-pointer transition-all flex justify-between items-center ${
-                        selectedPlan.id === plan.id ? 'border-green-700 bg-green-50 shadow-sm' : 'border-gray-100 hover:border-gray-200'
-                      }`}
-                    >
-                      <div className="flex flex-col">
-                        <span className="font-bold text-gray-900">{plan.label}</span>
-                        <span className="text-xs text-gray-500" dir="rtl">{plan.urduLabel} ({plan.days} دن)</span>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-black text-green-700 text-lg whitespace-nowrap">Rs. {plan.price}</p>
-                      </div>
+          <form onSubmit={handleSubmit} className="p-6 space-y-6">
+            
+            {/* 1. Plan Selection */}
+            <div className="space-y-3">
+              <label className="font-bold text-gray-800 text-sm">1. Choose Plan / پلان منتخب کریں</label>
+              <div className="grid grid-cols-1 gap-3">
+                {plans.map((p) => (
+                  <div 
+                    key={p.id}
+                    onClick={() => setSelectedPlan(p)}
+                    className={`p-4 border-2 rounded-2xl cursor-pointer transition-all flex justify-between items-center ${
+                      selectedPlan.id === p.id ? 'border-green-700 bg-green-50' : 'border-gray-100'
+                    }`}
+                  >
+                    <div className="flex flex-col">
+                      <span className="font-bold text-gray-900">{p.label}</span>
+                      <span className="text-xs text-gray-500 font-medium" dir="rtl">{p.urduLabel} ({p.days} دن)</span>
                     </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Account Details */}
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <h3 className="font-bold text-gray-900 text-sm">1. Transfer Money / رقم بھیجیں</h3>
-                </div>
-                <div className="grid grid-cols-1 gap-3">
-                  <div className="p-4 border rounded-2xl bg-gray-50 border-gray-200 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 bg-orange-500 text-white text-[10px] px-2 py-0.5 rounded-bl-lg font-bold">JazzCash</div>
-                    <p className="text-lg font-mono font-bold text-gray-800">0301-3551707</p>
-                    <p className="text-xs text-gray-600 font-medium uppercase tracking-tight">Account: BetailHub</p>
+                    <span className="font-black text-green-700 text-lg">Rs. {p.price}</span>
                   </div>
-                  <div className="p-4 border rounded-2xl bg-gray-50 border-gray-200 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 bg-green-500 text-white text-[10px] px-2 py-0.5 rounded-bl-lg font-bold">EasyPaisa</div>
-                    <p className="text-lg font-mono font-bold text-gray-800">0301-3551707</p>
-                    <p className="text-xs text-gray-600 font-medium uppercase tracking-tight">Account: BetailHub</p>
-                  </div>
-                </div>
+                ))}
               </div>
+            </div>
 
-              {/* TID Input */}
-              <div className="space-y-3 bg-gray-50 p-4 rounded-2xl border border-gray-200">
-                <div className="flex justify-between items-center">
-                   <label className="text-xs font-bold text-gray-700 uppercase">2. Transaction ID (TID)</label>
-                   <label className="text-xs font-bold text-gray-700" dir="rtl">ٹرانزیکشن آئی ڈی درج کریں</label>
-                </div>
-                <input 
-                  type="text"
-                  required
-                  placeholder="Enter 11 or 12 digit ID"
-                  className="w-full p-4 border-2 rounded-xl focus:border-green-700 outline-none shadow-sm transition-all font-mono"
-                  value={tid}
-                  onChange={(e) => setTid(e.target.value)}
-                />
+            {/* 2. Platform Selection */}
+            <div className="space-y-3">
+              <label className="font-bold text-gray-800 text-sm">2. Payment Method / ادائیگی کا ذریعہ</label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('JazzCash')}
+                  className={`p-4 rounded-2xl border-2 font-bold transition-all ${
+                    paymentMethod === 'JazzCash' ? 'border-orange-500 bg-orange-50 text-orange-700' : 'border-gray-100 text-gray-400'
+                  }`}
+                >
+                  JazzCash
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('EasyPaisa')}
+                  className={`p-4 rounded-2xl border-2 font-bold transition-all ${
+                    paymentMethod === 'EasyPaisa' ? 'border-green-600 bg-green-50 text-green-700' : 'border-gray-100 text-gray-400'
+                  }`}
+                >
+                  EasyPaisa
+                </button>
               </div>
+            </div>
 
-              <button 
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full bg-green-700 text-white py-4 rounded-2xl font-bold text-lg hover:bg-green-800 transition-all flex flex-col items-center justify-center gap-0 shadow-lg active:scale-95 disabled:opacity-50"
-              >
-                <div className="flex items-center gap-2">
-                  <Zap className="w-5 h-5 fill-current" />
-                  <span>{isSubmitting ? "Processing..." : "Confirm & Submit"}</span>
-                </div>
-                {!isSubmitting && <span className="text-xs opacity-80 font-normal" dir="rtl">تصدیق کریں اور بھیجیں</span>}
-              </button>
-            </form>
-          </div>
+            {/* 3. Account Display */}
+            <div className={`p-5 rounded-2xl border-2 animate-in fade-in zoom-in duration-300 ${
+              paymentMethod === 'JazzCash' ? 'bg-orange-50 border-orange-100' : 'bg-green-50 border-green-100'
+            }`}>
+              <p className="text-xs font-bold text-gray-500 uppercase mb-2 text-center">Transfer Rs. {selectedPlan.price} to:</p>
+              <p className="text-2xl font-mono font-bold text-center text-gray-900">0301-3551707</p>
+              <p className="text-sm text-center text-gray-600 font-medium">Account: BetailHub ({paymentMethod})</p>
+            </div>
+
+            {/* 4. TID Input */}
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <label className="text-xs font-bold text-gray-700 uppercase">3. Transaction ID (TID)</label>
+                <label className="text-xs font-bold text-gray-700" dir="rtl">ٹرانزیکشن آئی ڈی</label>
+              </div>
+              <input 
+                type="text"
+                required
+                placeholder="Enter 11-digit TID"
+                className="w-full p-4 border-2 rounded-xl focus:border-green-700 outline-none transition-all font-mono"
+                value={tid}
+                onChange={(e) => setTid(e.target.value)}
+              />
+            </div>
+
+            <button 
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full bg-green-700 text-white py-4 rounded-2xl font-bold text-lg hover:bg-green-800 transition-all shadow-lg active:scale-95"
+            >
+              {isSubmitting ? "Verifying..." : "Confirm Payment / تصدیق کریں"}
+            </button>
+          </form>
         </div>
 
-        {/* Right Column: Video & Instructions */}
-        <div className="space-y-6 order-1 lg:order-2">
-          
-          {/* Video Section */}
+        {/* Right Column: Video & Help */}
+        <div className="space-y-6">
           <div className="bg-white rounded-3xl p-5 shadow-xl border border-gray-100">
-            <div className="flex justify-between items-center mb-4">
-              <span className="font-bold text-gray-900 flex items-center gap-2"><PlayCircle className="w-5 h-5 text-green-700"/> Video Tutorial</span>
-              <span className="font-bold text-gray-900" dir="rtl">ویڈیو گائیڈ</span>
-            </div>
-            <div className="aspect-video bg-gray-900 rounded-2xl overflow-hidden shadow-inner">
-               <iframe 
-                className="w-full h-full"
-                src="https://www.youtube.com/embed/dQw4w9WgXcQ" 
-                title="Tutorial"
-                frameBorder="0"
-                allowFullScreen
-              ></iframe>
-            </div>
+             <div className="flex justify-between items-center mb-4">
+               <span className="font-bold flex items-center gap-2"><PlayCircle className="text-green-700"/> How to Pay</span>
+               <span className="font-bold" dir="rtl">طریقہ کار</span>
+             </div>
+             <div className="aspect-video bg-gray-900 rounded-2xl overflow-hidden shadow-inner">
+               <iframe className="w-full h-full" src="https://www.youtube.com/embed/dQw4w9WgXcQ" title="Guide" frameBorder="0" allowFullScreen></iframe>
+             </div>
           </div>
 
-          {/* Bilingual Steps */}
-          <div className="bg-white rounded-3xl p-6 shadow-xl border border-gray-100">
-            <div className="flex justify-between items-center mb-6">
-              <span className="font-bold text-gray-900 flex items-center gap-2"><Info className="w-5 h-5 text-green-700"/> Instructions</span>
-              <span className="font-bold text-gray-900" dir="rtl">ہدایات</span>
-            </div>
-
-            <div className="space-y-6">
-              <div className="flex gap-4 border-b border-gray-50 pb-4">
-                <div className="w-10 h-10 rounded-full bg-green-100 text-green-700 flex items-center justify-center font-bold flex-shrink-0">1</div>
-                <div className="flex-1">
-                  <p className="text-sm font-bold text-gray-900">Transfer Payment / رقم منتقل کریں</p>
-                  <p className="text-xs text-gray-500 mt-1">Send Rs. <span className="font-bold">{selectedPlan.price}</span> to <span className="font-bold text-gray-700">0301-3551707</span> (BetailHub).</p>
-                  <p className="text-xs text-gray-600 mt-1 font-medium" dir="rtl">منتخب کردہ رقم (Rs. {selectedPlan.price}) دیئے گئے نمبر پر بھیجیں۔</p>
-                </div>
-              </div>
-
-              <div className="flex gap-4 border-b border-gray-50 pb-4">
-                <div className="w-10 h-10 rounded-full bg-green-100 text-green-700 flex items-center justify-center font-bold flex-shrink-0">2</div>
-                <div className="flex-1">
-                  <p className="text-sm font-bold text-gray-900">Get TID / ٹرانزیکشن آئی ڈی حاصل کریں</p>
-                  <p className="text-xs text-gray-500 mt-1">Copy the TID from the confirmation SMS you receive after transfer.</p>
-                  <p className="text-xs text-gray-600 mt-1 font-medium" dir="rtl">رقم بھیجنے کے بعد موصول ہونے والی ٹرانزیکشن آئی ڈی (TID) نوٹ کریں۔</p>
-                </div>
-              </div>
-
-              <div className="flex gap-4">
-                <div className="w-10 h-10 rounded-full bg-green-100 text-green-700 flex items-center justify-center font-bold flex-shrink-0">3</div>
-                <div className="flex-1">
-                  <p className="text-sm font-bold text-gray-900">Submit Form / فارم جمع کریں</p>
-                  <p className="text-xs text-gray-500 mt-1">Paste the TID above and click confirm. Ad will be featured within 24 hours.</p>
-                  <p className="text-xs text-gray-600 mt-1 font-medium" dir="rtl">آئی ڈی یہاں درج کر کے بٹن دبائیں۔ آپ کا اشتہار 24 گھنٹے میں نمایاں ہو جائے گا۔</p>
-                </div>
-              </div>
-            </div>
+          <div className="bg-white rounded-3xl p-6 shadow-xl border border-gray-100 space-y-4">
+             <div className="flex items-center gap-2 font-bold text-gray-900 mb-2">
+               <Info className="text-green-700 w-5 h-5"/> Instructions / ہدایات
+             </div>
+             <div className="text-sm text-gray-600 space-y-4">
+                <p>1. Select your plan and payment method (JazzCash/EasyPaisa).</p>
+                <p dir="rtl" className="text-right">1. اپنا پلان اور ادائیگی کا طریقہ منتخب کریں۔</p>
+                <hr />
+                <p>2. Send the amount to our account number mentioned above.</p>
+                <p dir="rtl" className="text-right">2. اوپر دیئے گئے اکاؤنٹ نمبر پر رقم منتقل کریں۔</p>
+                <hr />
+                <p>3. Enter the TID from the SMS you received after payment.</p>
+                <p dir="rtl" className="text-right">3. ادائیگی کے بعد موصول ہونے والی ٹرانزیکشن آئی ڈی درج کریں۔</p>
+             </div>
           </div>
         </div>
-
       </div>
     </div>
   );
