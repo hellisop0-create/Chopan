@@ -96,6 +96,22 @@ export default function BillingPage() {
                 </div>
               </div>
 
+               <div className="space-y-4">
+            <h3 className="font-bold text-gray-900">1. Transfer Money</h3>
+            <div className="grid grid-cols-1 gap-3">
+              <div className="p-4 border rounded-2xl bg-gray-50">
+                <p className="text-xs text-gray-500 font-bold uppercase">JazzCash</p>
+                <p className="text-lg font-mono">0301-3551707</p>
+                <p className="text-sm text-gray-600">Account: BetailHub</p>
+              </div>
+              <div className="p-4 border rounded-2xl bg-gray-50">
+                <p className="text-xs text-gray-500 font-bold uppercase">EasyPaisa</p>
+                <p className="text-lg font-mono">0301-3551707</p>
+                <p className="text-sm text-gray-600">Account: BetailHub</p>
+              </div>
+            </div>
+          </div>
+
               {/* TID Input */}
               <div className="space-y-3 bg-gray-50 p-4 rounded-2xl">
                 <div className="flex justify-between items-center">
