@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { db } from '../firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, updateDoc } from 'firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 import { Clock, Zap, PlayCircle, Info, CheckCircle2 } from 'lucide-react';
@@ -29,9 +29,11 @@ export default function BillingPage() {
     
     if (!user) return toast.error("Please login / لاگ ان کریں");
     if (!tid || tid.length < 8) return toast.error("Invalid TID / درست آئی ڈی درج کریں");
+    if (!adId) return toast.error("Ad ID missing / اشتہار کی آئی ڈی غائب ہے");
 
     setIsSubmitting(true);
     try {
+      // 1. Save payment record
       await addDoc(collection(db, 'payments'), {
         adId: adId,
         sellerUid: user.uid,
@@ -39,10 +41,16 @@ export default function BillingPage() {
         planLabel: selectedPlan.label,
         amount: selectedPlan.price,
         durationDays: selectedPlan.days,
-        paymentPlatform: paymentMethod, // <--- SAVES JAZZCASH OR EASYPAISA
+        paymentPlatform: paymentMethod, 
         tid: tid.trim(),
         status: 'pending',
         createdAt: serverTimestamp(),
+      });
+
+      // 2. Update the ad document status so it shows in Profile 'Featured' tab
+      const adRef = doc(db, 'ads', adId);
+      await updateDoc(adRef, {
+        featuredStatus: 'pending'
       });
       
       toast.success("Payment submitted! / ادائیگی جمع کر دی گئی ہے");
