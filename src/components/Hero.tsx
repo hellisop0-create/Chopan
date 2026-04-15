@@ -30,7 +30,6 @@ const LOCATION_DATA = {
   }
 };
 
-// Reusable Dropdown List component
 const SuggestionList = ({ items, onSelect, visible }) => {
   if (!visible || items.length === 0) return null;
   return (
@@ -39,7 +38,7 @@ const SuggestionList = ({ items, onSelect, visible }) => {
         <div
           key={item}
           onMouseDown={(e) => {
-            e.preventDefault(); // Prevents blur before selection
+            e.preventDefault();
             onSelect(item);
           }}
           className="px-4 py-3 hover:bg-green-50 cursor-pointer text-left text-sm text-gray-700 font-medium flex justify-between items-center group transition-colors"
@@ -54,7 +53,6 @@ const SuggestionList = ({ items, onSelect, visible }) => {
 
 export default function Hero() {
   const [query, setQuery] = useState("");
-  const [isLocating, setIsLocating] = useState(false);
   const navigate = useNavigate();
 
   const [province, setProvince] = useState("");
@@ -64,30 +62,30 @@ export default function Hero() {
 
   const isSearchDisabled = !query.trim();
 
-  // Logic to show all suggestions when field is focused, or filter when typing
   const getCitySuggestions = () => {
     if (!province || !LOCATION_DATA[province]) return [];
     const cities = Object.keys(LOCATION_DATA[province]);
-    if (!city) return cities; // Show all if empty
+    if (!city) return cities;
     return cities.filter(c => c.toLowerCase().includes(city.toLowerCase()));
   };
 
   const getAreaSuggestions = () => {
     if (!province || !city || !LOCATION_DATA[province][city]) return [];
     const areas = LOCATION_DATA[province][city];
-    if (!area) return areas; // Show all if empty
+    if (!area) return areas;
     return areas.filter(a => a.toLowerCase().includes(area.toLowerCase()));
   };
 
+  // ✅ FIXED: Normalizing values to lowercase for reliable search tracing
   const handleSearch = (e) => {
     if (e) e.preventDefault();
     if (isSearchDisabled) return;
     
     const params = new URLSearchParams({
       q: query.trim(),
-      province: province,
-      city: city,
-      area: area
+      province: province.toLowerCase(),
+      city: city.toLowerCase(),
+      area: area.toLowerCase()
     });
     
     navigate(`/search?${params.toString()}`);
@@ -106,7 +104,6 @@ export default function Hero() {
         <form onSubmit={handleSearch} className="max-w-6xl mx-auto bg-white rounded-2xl p-3 flex flex-col gap-3 shadow-2xl relative z-50">
           <div className="flex flex-col lg:flex-row gap-2 w-full">
             
-            {/* Main Search Input */}
             <div className="flex-[1.5] flex items-center px-4 border border-gray-100 rounded-xl bg-gray-50">
               <Search className="text-gray-400 w-5 h-5 mr-3" />
               <input 
@@ -118,10 +115,8 @@ export default function Hero() {
               />
             </div>
 
-            {/* Location Selector Group */}
             <div className="flex flex-col md:flex-row gap-2 flex-[3]">
               
-              {/* Province - Strict Selection */}
               <div className="relative flex-1">
                 <select 
                   className="w-full h-full p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none text-gray-600 font-semibold text-sm appearance-none cursor-pointer"
@@ -136,7 +131,6 @@ export default function Hero() {
                 <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
               </div>
 
-              {/* City - Typeable with Dropdown */}
               <div className="relative flex-1">
                 <input 
                   type="text"
@@ -155,7 +149,6 @@ export default function Hero() {
                 />
               </div>
 
-              {/* Area - Typeable with Dropdown */}
               <div className="relative flex-1">
                 <input 
                   type="text"
