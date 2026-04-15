@@ -24,12 +24,9 @@ import {
   Clock,
   Edit3,
   Eye,
-  Settings,
-  Tag,
   Zap,
-  XCircle 
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom'; // Added useLocation here
 import { cn } from '../lib/utils';
 import { toast } from 'sonner';
 
@@ -37,24 +34,33 @@ export default function Profile() {
   const { user, logout } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
+  const location = useLocation(); // Moved inside the component
 
   const [activeTab, setActiveTab] = useState<'listings' | 'favorites' | 'featured'>('listings');
   const [myAds, setMyAds] = useState<Ad[]>([]);
   const [favoriteAds, setFavoriteAds] = useState<Ad[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingFavs, setLoadingFavs] = useState(false);
+  const [showHint, setShowHint] = useState(false); // State for the popup hint
 
   // --- REFINED FILTER LOGIC ---
   const featuredAds = myAds.filter(ad => {
-    // If you unfeature it (set isFeatured to false), it should only show if 
-    // it's still in the 'pending' payment phase.
     const isBoolFeatured = ad.isFeatured === true;
     const status = ad.featuredStatus?.toLowerCase();
-    
-    // Show if it's explicitly featured OR if it's waiting for approval
-    // Once unfeatured, 'active' status alone won't keep it here.
     return isBoolFeatured || status === 'pending';
   });
+
+  // Handle Redirection Logic for "Promote" hint
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('action') === 'promote') {
+      setActiveTab('listings'); 
+      setShowHint(true);
+      // Auto-hide hint after 6 seconds so user has time to see it
+      const timer = setTimeout(() => setShowHint(false), 6000);
+      return () => clearTimeout(timer);
+    }
+  }, [location.search]);
 
   // Fetch User's Own Listings
   useEffect(() => {
@@ -71,7 +77,6 @@ export default function Profile() {
         id: doc.id,
         ...doc.data()
       } as Ad));
-      console.log("DEBUG: All my ads from Firestore:", ads);
       setMyAds(ads);
       setLoading(false);
     }, (err) => {
@@ -235,9 +240,31 @@ export default function Profile() {
                           <div className="grid grid-cols-2 gap-2">
                             <button onClick={() => navigate(`/ad/${ad.id}`)} className="flex items-center justify-center space-x-1 py-2.5 px-2 bg-gray-50 text-gray-700 rounded-xl hover:bg-gray-100 transition-colors text-sm font-bold border border-gray-200"><Eye className="w-4 h-4" /><span>View</span></button>
                             <button onClick={() => navigate(`/edit-ad/${ad.id}`)} className="flex items-center justify-center space-x-1 py-2.5 px-2 bg-blue-50 text-blue-700 rounded-xl hover:bg-blue-100 transition-colors text-sm font-bold border border-blue-100"><Edit3 className="w-4 h-4" /><span>Edit</span></button>
-                            <button onClick={() => { const s = encodeURIComponent("Featured Ad (Weekly)"); const p = encodeURIComponent("1,000 PKR"); navigate(`/billing?adId=${ad.id}&service=${s}&price=${p}`); }} className="flex items-center justify-center space-x-1 py-2.5 px-2 bg-amber-50 text-amber-700 rounded-xl hover:bg-amber-100 transition-colors text-sm font-bold border border-amber-100"><Zap className="w-4 h-4 fill-amber-500 text-amber-500" /><span>Promote</span></button>
+                            
+                            {/* PROMOTE BUTTON WITH POPUP HINT */}
+                            <div className="relative">
+                                <button 
+                                    onClick={() => { 
+                                        const s = encodeURIComponent("Featured Ad (Weekly)"); 
+                                        const p = encodeURIComponent("1,000 PKR"); 
+                                        navigate(`/billing?adId=${ad.id}&service=${s}&price=${p}`); 
+                                    }} 
+                                    className="flex items-center justify-center space-x-1 py-2.5 px-2 bg-amber-50 text-amber-700 rounded-xl hover:bg-amber-100 transition-colors text-sm font-bold border border-amber-100 w-full"
+                                >
+                                    <Zap className="w-4 h-4 fill-amber-500 text-amber-500" />
+                                    <span>Promote</span>
+                                </button>
+                                
+                                {showHint && (
+                                    <div className="absolute -top-14 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-[11px] px-3 py-2 rounded-xl shadow-xl font-bold whitespace-nowrap animate-bounce z-10 border-2 border-white">
+                                        Click here to Feature!
+                                        <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-blue-600 rotate-45"></div>
+                                    </div>
+                                )}
+                            </div>
+
                             <button onClick={() => handleToggleSold(ad.id, ad.status)} className={cn("flex items-center justify-center space-x-1 py-2.5 px-2 rounded-xl transition-colors text-sm font-bold border", ad.status === 'sold' ? "bg-green-600 text-white border-green-700 hover:bg-green-700" : "bg-white text-green-700 border-green-200 hover:bg-green-50")}><CheckCircle className="w-4 h-4" /><span>{ad.status === 'sold' ? 'Mark Active' : 'Mark Sold'}</span></button>
-                            <button onClick={() => handleDeleteAd(ad.id)} className="flex items-center justify-center space-x-1 py-2.5 px-2 bg-red-50 text-red-700 rounded-xl hover:bg-red-100 transition-colors text-sm font-bold border border-red-100"><Trash2 className="w-4 h-4" /><span>Delete</span></button>
+                            <button onClick={() => handleDeleteAd(ad.id)} className="col-span-2 flex items-center justify-center space-x-1 py-2.5 px-2 bg-red-50 text-red-700 rounded-xl hover:bg-red-100 transition-colors text-sm font-bold border border-red-100"><Trash2 className="w-4 h-4" /><span>Delete</span></button>
                           </div>
                         </div>
                       </div>
