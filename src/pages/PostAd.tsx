@@ -7,11 +7,10 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Camera, MapPin, Phone, AlertCircle, Loader2, X, Image as ImageIcon, Clock, EyeOff, Sparkles } from 'lucide-react';
+import { Camera, MapPin, Phone, AlertCircle, Loader2, X, Image as ImageIcon, Clock, EyeOff, Sparkles, ShieldAlert } from 'lucide-react';
 import { toast } from 'sonner';
 import { handleFirestoreError, OperationType } from '../lib/firestore-utils';
 
-// 1. Updated Schema with hidePhoneNumber
 const adSchema = z.object({
   title: z.string().min(5, 'Title must be at least 5 characters').max(100),
   description: z.string().min(20, 'Description must be at least 20 characters'),
@@ -24,7 +23,7 @@ const adSchema = z.object({
   city: z.string().min(2, 'City is required'),
   area: z.string().min(2, 'Area is required'),
   phoneNumber: z.string().regex(/^(\+92|0)3[0-9]{9}$/, 'Invalid Pakistani phone number'),
-  hidePhoneNumber: z.boolean(), // Required in schema
+  hidePhoneNumber: z.boolean(),
 });
 
 type AdFormData = z.infer<typeof adSchema>;
@@ -39,7 +38,6 @@ export default function PostAd() {
   const [previews, setPreviews] = useState<string[]>([]);
   const [showPhotoPopup, setShowPhotoPopup] = useState(false);
   
-  // New States for Post Selection
   const [showTypeSelection, setShowTypeSelection] = useState(false);
   const [tempFormData, setTempFormData] = useState<AdFormData | null>(null);
 
@@ -89,21 +87,18 @@ export default function PostAd() {
     setPreviews(prev => prev.filter((_, i) => i !== index));
   };
 
-  // Logic to handle "Post Advertisement" Click
   const onSubmit = async (data: AdFormData) => {
     if (selectedFiles.length === 0) return toast.error("Please add at least one photo");
     setTempFormData(data);
     setShowTypeSelection(true);
   };
 
-  // Final Action handler for selection popup
   const handleFinalUpload = async (isFeatured: boolean) => {
-    if (!tempFormData) return;
+    if (!tempFormData || !user) return;
     setShowTypeSelection(false);
     setLoading(true);
 
     try {
-      // Monthly Limit Check
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       
@@ -139,20 +134,25 @@ export default function PostAd() {
       if (uploadedUrls.length === 0) throw new Error("No images were uploaded.");
 
       if (isFeatured) {
-        // DIRECT REDIRECT TO CHECKOUT
+        // Prepare data for billing/checkout
+        const featuredAdData = {
+          ...tempFormData,
+          images: uploadedUrls,
+          sellerUid: user.uid,
+          sellerName: user.displayName || 'Seller',
+          status: 'pending',
+          isFeatured: true,
+          createdAt: new Date().toISOString(),
+        };
+
+        // Redirect to billing/checkout page
         navigate('/checkout', { 
           state: { 
-            adData: { 
-              ...tempFormData, 
-              images: uploadedUrls, 
-              sellerUid: user.uid, 
-              sellerName: user.displayName || 'Seller',
-              isFeatured: true 
-            } 
+            adData: featuredAdData,
+            type: 'featured'
           } 
         });
       } else {
-        // FREE POST DIRECT TO FIRESTORE
         try {
           await addDoc(collection(db, 'ads'), {
             ...tempFormData,
@@ -332,7 +332,6 @@ export default function PostAd() {
         </div>
       </div>
 
-      {/* POPUP: SELECT POST TYPE */}
       {showTypeSelection && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
           <div className="bg-white w-full max-w-md rounded-[2.5rem] p-8 shadow-2xl">
@@ -375,7 +374,6 @@ export default function PostAd() {
         </div>
       )}
 
-      {/* SUCCESS REVIEW MODAL */}
       {showSuccessModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
           <div className="bg-white w-full max-w-md rounded-[2.5rem] p-8 shadow-2xl text-center">
@@ -383,7 +381,15 @@ export default function PostAd() {
               <Clock className="w-10 h-10 text-orange-600 animate-pulse" />
             </div>
             <h3 className="text-2xl font-black text-gray-900 mb-2">Ad Under Review</h3>
-            <p className="text-gray-600 mb-8">Your ad is being reviewed by the admin. Please wait for approval.</p>
+            <p className="text-gray-600 mb-4 font-medium">Your ad is being reviewed by the admin. Please wait for approval.</p>
+            
+            <div className="bg-red-50 border border-red-100 p-4 rounded-2xl mb-8 flex items-start space-x-3 text-left">
+              <ShieldAlert className="w-6 h-6 text-red-600 shrink-0 mt-0.5" />
+              <p className="text-xs text-red-800 font-bold leading-relaxed">
+                Notice: Your ads won't be accepted if they contain any kind of violence, sexual content, or inappropriate images.
+              </p>
+            </div>
+
             <button onClick={() => navigate('/profile')} className="w-full bg-green-700 text-white py-4 rounded-2xl font-bold">
               Go to My Profile
             </button>
