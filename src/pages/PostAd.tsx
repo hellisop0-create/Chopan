@@ -17,7 +17,7 @@ const adSchema = z.object({
   title: z.string().min(5, 'Title must be at least 5 characters').max(100),
   description: z.string().min(20, 'Description must be at least 20 characters'),
   price: z.number().min(0, 'Price must be positive'),
-  category: z.enum(['Cow', 'Buffalo', 'Goat', 'Sheep', 'Camel', 'Others']),
+  category: z.enum(['Cattle', 'Buffalo', 'Goat', 'Sheep', 'Camel', 'Others']),
   breed: z.string().min(2, 'Breed is required'),
   age: z.string().min(1, 'Age is required'),
   weight: z.string().min(1, 'Weight is required'),
@@ -44,7 +44,7 @@ export default function PostAd() {
   const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<AdFormData>({
     resolver: zodResolver(adSchema),
     defaultValues: {
-      category: 'Cow',
+      category: 'Cattle',
       phoneNumber: user?.phoneNumber || '',
       hidePhoneNumber: false,
     }
@@ -257,14 +257,14 @@ export default function PostAd() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="md:col-span-2">
                 <label className="block text-sm font-bold text-gray-700 mb-2">Ad Title</label>
-                <input {...register('title')} placeholder="e.g. Sahiwal Cow for Sale" className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none" />
+                <input {...register('title')} placeholder="e.g. Sahiwal Cattle for Sale" className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none" />
                 {errors.title && <p className="text-red-500 text-xs mt-1">{errors.title.message}</p>}
               </div>
 
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2">Category</label>
                 <select {...register('category')} className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none">
-                  {['Cow', 'Buffalo', 'Goat', 'Sheep', 'Camel', 'Others'].map(cat => (
+                  {['Cattle', 'Buffalo', 'Goat', 'Sheep', 'Camel', 'Others'].map(cat => (
                     <option key={cat} value={cat}>{cat}</option>
                   ))}
                 </select>
