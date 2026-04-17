@@ -3,10 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { Search, MapPin, Check, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
+// ✅ Synchronized with your database naming conventions
 const LOCATION_DATA = {
   "Sindh": {
     "Karachi": ["DHA", "Clifton", "Gulshan-e-Iqbal", "Gulistan-e-Johar", "North Nazimabad", "Malir", "Saddar", "Scheme 33"],
-    "Hyderabad": ["Latifabad","Jamshoro", "Qasimabad", "Tando Allahyar Road", "Hyder Chowk", "Heerabaad", "Pathan Colony", "Citizen Colony", "Autobahn"],
+    "Hyderabad": ["Latifabad", "Qasimabad", "Tando Allahyar Road", "Hyder Chowk", "Heerabaad", "Pathan Colony", "Citizen Colony", "Autobahn", "Tandojam", "Jamshoro"],
     "Sukkur": ["Military Road", "Barrage Road", "Rohri"],
     "Larkana": ["VIP Road", "Station Road"],
     "Mirpur Khas": ["Satellite Town", "Digri Road"]
@@ -80,13 +81,12 @@ export default function Hero() {
     if (e) e.preventDefault();
     if (isSearchDisabled) return;
     
-    // ✅ Updated params to ensure tracing works correctly by matching data casing
-    const params = new URLSearchParams({
-      q: query.trim(),
-      province: province.toLowerCase().trim(),
-      city: city.toLowerCase().trim(),
-      area: area.toLowerCase().trim()
-    });
+    const params = new URLSearchParams();
+    params.append('q', query.trim());
+    
+    if (province) params.append('province', province);
+    if (city) params.append('city', city);
+    if (area) params.append('area', area);
     
     navigate(`/search?${params.toString()}`);
   };
