@@ -20,9 +20,9 @@ export default function Browse() {
   const { t } = useLanguage();
 
   const categoryFilter = searchParams.get('category') as Category | null;
-  const provinceFilter = (searchParams.get('province') || '').trim();
-  const cityFilter = (searchParams.get('city') || '').trim();
-  const areaFilter = (searchParams.get('area') || '').trim();
+  const provinceFilter = searchParams.get('province') || '';
+  const cityFilter = searchParams.get('city') || '';
+  const areaFilter = searchParams.get('area') || '';
   const sortFilter = searchParams.get('sort') || 'latest';
 
   useEffect(() => {
@@ -30,7 +30,6 @@ export default function Browse() {
     setExactAds([]);
     setOtherAds([]);
 
-    // Query for active ads
     let q = query(collection(db, 'ads'), where('status', '==', 'active'));
     if (categoryFilter) {
       q = query(q, where('category', '==', categoryFilter));
@@ -46,31 +45,32 @@ export default function Browse() {
         if (seenIds.has(ad.id)) return;
         seenIds.add(ad.id);
 
-        // Normalize data for comparison (Handles case sensitivity and missing fields)
-        const adProv = (ad.province || "").toString().trim().toLowerCase();
-        const adCity = (ad.city || "").toString().trim().toLowerCase();
-        const adArea = (ad.area || "").toString().trim().toLowerCase();
+        // --- FIXED FILTERING LOGIC START ---
+        const dbCity = (ad.city || "").toString().trim();
+        const dbProv = (ad.province || "").toString().trim();
+        const dbArea = (ad.area || "").toString().trim();
 
-        const filterProv = provinceFilter.toLowerCase();
-        const filterCity = cityFilter.toLowerCase();
-        const filterArea = areaFilter.toLowerCase();
+        // Smart Lookup: If ad has no province, find it in LOCATION_DATA using the city name
+        let effectiveProvince = dbProv;
+        if (!effectiveProvince && dbCity) {
+          const mapping = LOCATION_DATA.find(l => l.city.toLowerCase() === dbCity.toLowerCase());
+          if (mapping) effectiveProvince = mapping.province;
+        }
 
-        // LOGIC: Match if filter is empty OR if database value matches filter
-        const matchesProvince = !provinceFilter || adProv === filterProv;
-        const matchesCity = !cityFilter || adCity === filterCity;
-        const matchesArea = !areaFilter || adArea === filterArea;
+        const matchesProvince = !provinceFilter || effectiveProvince.toLowerCase() === provinceFilter.toLowerCase();
+        const matchesCity = !cityFilter || dbCity.toLowerCase() === cityFilter.toLowerCase();
+        const matchesArea = !areaFilter || dbArea.toLowerCase() === areaFilter.toLowerCase();
 
         if (provinceFilter || cityFilter || areaFilter) {
-          // If a user has filtered, check for exact match
           if (matchesProvince && matchesCity && matchesArea) {
             localExact.push(ad);
           } else {
             localOthers.push(ad);
           }
         } else {
-          // No filters applied, everything is an exact match
           localExact.push(ad);
         }
+        // --- FIXED FILTERING LOGIC END ---
       });
 
       const sortFunction = (a: Ad, b: Ad) => {
@@ -109,7 +109,6 @@ export default function Browse() {
     setSearchParams(newParams);
   };
 
-  // --- HIERARCHICAL DATA EXTRACTION ---
   const uniqueProvinces = Array.from(new Set((LOCATION_DATA || []).map(item => item.province))).filter(Boolean).sort();
 
   const availableCities = provinceFilter
