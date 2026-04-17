@@ -7,7 +7,6 @@ import AdCard from '../components/AdCard';
 import { useLanguage } from '../contexts/LanguageContext';
 import { Search, MapPin, Package, Filter } from 'lucide-react';
 import { cn } from '../lib/utils';
-// CORRECTED IMPORT
 import { LOCATION_DATA } from '../components/locations';
 
 const categories: Category[] = ['Cattle', 'Buffalo', 'Goat', 'Sheep', 'Camel', 'Others'];
@@ -27,8 +26,11 @@ export default function Browse() {
 
   useEffect(() => {
     setLoading(true);
-    let q = query(collection(db, 'ads'), where('status', '==', 'active'));
+    // 1. CLEAR STATE ON EVERY FILTER CHANGE
+    setExactAds([]);
+    setOtherAds([]);
 
+    let q = query(collection(db, 'ads'), where('status', '==', 'active'));
     if (categoryFilter) {
       q = query(q, where('category', '==', categoryFilter));
     }
@@ -36,17 +38,26 @@ export default function Browse() {
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const allFetchedAds = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Ad));
       
+      const seenIds = new Set();
       const localExact: Ad[] = [];
       const localOthers: Ad[] = [];
 
       allFetchedAds.forEach(ad => {
+        if (seenIds.has(ad.id)) return;
+        seenIds.add(ad.id);
+
         const isProvinceMatch = !provinceFilter || ad.province === provinceFilter;
         const isCityMatch = !cityFilter || ad.city === cityFilter;
         
-        if (isProvinceMatch && isCityMatch) {
-          localExact.push(ad);
+        // 2. EXCLUSIVE LOGIC: If filtering, separate them. If not, everything is exact.
+        if (provinceFilter || cityFilter) {
+          if (isProvinceMatch && isCityMatch) {
+            localExact.push(ad);
+          } else {
+            localOthers.push(ad);
+          }
         } else {
-          localOthers.push(ad);
+          localExact.push(ad);
         }
       });
 
@@ -58,8 +69,8 @@ export default function Browse() {
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       };
 
-      setExactAds(localExact.sort(sortFunction));
-      setOtherAds(localOthers.sort(sortFunction));
+      setExactAds([...localExact].sort(sortFunction));
+      setOtherAds([...localOthers].sort(sortFunction));
       setLoading(false);
     });
 
@@ -76,6 +87,7 @@ export default function Browse() {
     if (key === 'province') newParams.delete('city');
     setSearchParams(newParams);
   };
+  console.table(allFetchedAds.map(ad => ({ id: ad.id, title: ad.title })));
 
   return (
     <div className="min-h-screen bg-gray-50/50">
@@ -115,7 +127,7 @@ export default function Browse() {
               <div className="space-y-2">
                 {categories.map(cat => (
                   <button
-                    key={cat}
+                    key={`cat-${cat}`} // IMPROVED KEY
                     onClick={() => updateFilter('category', cat)}
                     className={cn(
                       "w-full text-left px-3 py-2 rounded-lg transition-colors text-sm",
@@ -139,8 +151,8 @@ export default function Browse() {
                 className="w-full p-2.5 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 outline-none text-sm"
               >
                 <option value="">All Provinces</option>
-                {LOCATION_DATA.map(loc => (
-                  <option key={loc.province} value={loc.province}>{loc.province}</option>
+                {LOCATION_DATA.map((loc, idx) => (
+                  <option key={`prov-${loc.province}-${idx}`} value={loc.province}>{loc.province}</option>
                 ))}
               </select>
 
@@ -151,8 +163,8 @@ export default function Browse() {
                 className="w-full p-2.5 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 outline-none text-sm disabled:bg-gray-50 disabled:text-gray-400"
               >
                 <option value="">All Cities</option>
-                {LOCATION_DATA.find(l => l.province === provinceFilter)?.cities.map(city => (
-                  <option key={city} value={city}>{city}</option>
+                {LOCATION_DATA.find(l => l.province === provinceFilter)?.cities.map((city, idx) => (
+                  <option key={`city-${city}-${idx}`} value={city}>{city}</option>
                 ))}
               </select>
             </div>
@@ -174,34 +186,34 @@ export default function Browse() {
           <main className="flex-1">
             {loading ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-                {[1, 2, 3].map(i => <div key={i} className="h-80 bg-white animate-pulse rounded-2xl border border-gray-100" />)}
+                {[1, 2, 3].map(i => <div key={`skeleton-${i}`} className="h-80 bg-white animate-pulse rounded-2xl border border-gray-100" />)}
               </div>
             ) : (
               <div className="space-y-12">
-                {exactAds.length > 0 ? (
+                {exactAds.length > 0 && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-                    {exactAds.map(ad => <AdCard key={ad.id} ad={ad} />)}
+                    {exactAds.map(ad => <AdCard key={`exact-${ad.id}`} ad={ad} />)}
                   </div>
-                ) : (
-                  (provinceFilter || cityFilter) && (
-                    <div className="bg-white border-2 border-dashed border-gray-200 rounded-3xl p-12 text-center max-w-2xl mx-auto">
-                      <MapPin className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                      <h3 className="text-xl font-bold text-gray-900">No ads in {cityFilter || provinceFilter}</h3>
-                      <p className="text-gray-500 mt-2">Try expanding your search or clearing filters.</p>
-                    </div>
-                  )
                 )}
 
-                {otherAds.length > 0 && (
+                {(provinceFilter || cityFilter) && otherAds.length > 0 && (
                   <div className="pt-10 border-t border-gray-200">
                     <div className="mb-6">
                       <h2 className="text-2xl font-bold text-gray-900">Recommended for You</h2>
                       <p className="text-gray-500">Other {categoryFilter || 'livestock'} ads available in Pakistan</p>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-                      {otherAds.map(ad => <AdCard key={ad.id} ad={ad} />)}
+                      {otherAds.map(ad => <AdCard key={`other-${ad.id}`} ad={ad} />)}
                     </div>
                   </div>
+                )}
+                
+                {exactAds.length === 0 && otherAds.length === 0 && (
+                   <div className="bg-white border-2 border-dashed border-gray-200 rounded-3xl p-12 text-center max-w-2xl mx-auto">
+                      <Filter className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                      <h3 className="text-xl font-bold text-gray-900">No ads found</h3>
+                      <p className="text-gray-500 mt-2">Try clearing filters to see more listings.</p>
+                    </div>
                 )}
               </div>
             )}
