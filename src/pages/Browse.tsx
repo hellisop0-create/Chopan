@@ -20,9 +20,9 @@ export default function Browse() {
   const { t } = useLanguage();
 
   const categoryFilter = searchParams.get('category') as Category | null;
-  const provinceFilter = searchParams.get('province') || '';
-  const cityFilter = searchParams.get('city') || '';
-  const areaFilter = searchParams.get('area') || '';
+  const provinceFilter = (searchParams.get('province') || '').trim();
+  const cityFilter = (searchParams.get('city') || '').trim();
+  const areaFilter = (searchParams.get('area') || '').trim();
   const sortFilter = searchParams.get('sort') || 'latest';
 
   useEffect(() => {
@@ -30,6 +30,7 @@ export default function Browse() {
     setExactAds([]);
     setOtherAds([]);
 
+    // Query for active ads
     let q = query(collection(db, 'ads'), where('status', '==', 'active'));
     if (categoryFilter) {
       q = query(q, where('category', '==', categoryFilter));
@@ -45,23 +46,29 @@ export default function Browse() {
         if (seenIds.has(ad.id)) return;
         seenIds.add(ad.id);
 
-        // Inside onSnapshot -> allFetchedAds.forEach
-        const matchesProvince = !provinceFilter ||
-          ad.province?.toString().trim().toLowerCase() === provinceFilter.trim().toLowerCase();
+        // Normalize data for comparison (Handles case sensitivity and missing fields)
+        const adProv = (ad.province || "").toString().trim().toLowerCase();
+        const adCity = (ad.city || "").toString().trim().toLowerCase();
+        const adArea = (ad.area || "").toString().trim().toLowerCase();
 
-        const matchesCity = !cityFilter ||
-          ad.city?.toString().trim().toLowerCase() === cityFilter.trim().toLowerCase();
+        const filterProv = provinceFilter.toLowerCase();
+        const filterCity = cityFilter.toLowerCase();
+        const filterArea = areaFilter.toLowerCase();
 
-        const matchesArea = !areaFilter ||
-          ad.area?.toString().trim().toLowerCase() === areaFilter.trim().toLowerCase();
+        // LOGIC: Match if filter is empty OR if database value matches filter
+        const matchesProvince = !provinceFilter || adProv === filterProv;
+        const matchesCity = !cityFilter || adCity === filterCity;
+        const matchesArea = !areaFilter || adArea === filterArea;
 
         if (provinceFilter || cityFilter || areaFilter) {
+          // If a user has filtered, check for exact match
           if (matchesProvince && matchesCity && matchesArea) {
             localExact.push(ad);
           } else {
             localOthers.push(ad);
           }
         } else {
+          // No filters applied, everything is an exact match
           localExact.push(ad);
         }
       });
@@ -81,9 +88,6 @@ export default function Browse() {
       console.error("Snapshot error:", error);
       setLoading(false);
     });
-
-    console.log("Active Filters:", { provinceFilter, cityFilter, areaFilter });
-    console.log("First Ad Data:", exactAds[0] || otherAds[0]);
 
     return () => unsubscribe();
   }, [categoryFilter, provinceFilter, cityFilter, areaFilter, sortFilter]);
@@ -105,7 +109,7 @@ export default function Browse() {
     setSearchParams(newParams);
   };
 
-  // --- STRICT FILTERING LOGIC START ---
+  // --- HIERARCHICAL DATA EXTRACTION ---
   const uniqueProvinces = Array.from(new Set((LOCATION_DATA || []).map(item => item.province))).filter(Boolean).sort();
 
   const availableCities = provinceFilter
@@ -121,7 +125,6 @@ export default function Browse() {
     : [];
 
   const locationText = areaFilter || cityFilter || provinceFilter || 'Pakistan';
-  // --- STRICT FILTERING LOGIC END ---
 
   return (
     <div className="min-h-screen bg-gray-50/50">
