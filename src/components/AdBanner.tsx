@@ -46,22 +46,29 @@ const AdBanner = ({ location }) => {
   if (loading || !ad) return null;
 
   return (
-    /* REMOVED the outer <div> and my-4. 
-       Changed h-32 md:h-40 to h-full so it listens to the parent container.
-    */
     <button
       onClick={handleAdClick}
       className="w-full h-full relative rounded-xl overflow-hidden bg-white flex items-center justify-center transition-transform active:scale-[0.98]"
     >
-      <img
-        src={ad.imageUrl}
-        alt={ad.title || "Advertisement"}
-        /* 'object-contain' is the magic fix: 
-           it shows the WHOLE image without zooming or cropping.
-           'w-full h-full' ensures it uses the container's space.
-        */
-        className="w-full h-full object-contain mx-auto"
-      />
+      <picture className="w-full h-full flex items-center justify-center">
+        {/* Desktop Image */}
+        <source
+          media="(min-width: 768px)"
+          srcSet={ad.imageUrl}
+          className="w-full h-full object-contain"
+        />
+
+        {/* Mobile Image */}
+        <img
+          src={ad.mobileImageUrl || ad.imageUrl}
+          alt={ad.title || "Advertisement"}
+          /* 'max-h-full' ensures it never exceeds 128px (h-32) on mobile.
+             'w-auto' ensures it doesn't stretch sideways and get blurry.
+          */
+          className="max-w-full max-h-full w-auto h-auto object-contain mx-auto"
+        />
+      </picture>
+
       <div className="absolute top-2 right-2 bg-black/20 backdrop-blur-sm text-[10px] text-white px-1.5 py-0.5 rounded uppercase tracking-wider font-semibold">
         Ad
       </div>
