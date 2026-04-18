@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { collection, query, where, limit, orderBy, onSnapshot, doc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore'; 
 import { db } from '../firebase'; 
+import PromotionalBanner from '../components/PromotionalBanner';
 import { Ad } from '../types';
 import Hero from '../components/Hero';
 import { useAuth } from '../contexts/AuthContext'; 
@@ -89,15 +90,7 @@ const promoQuery = query(collection(db, 'active_ads'), limit(1));
       
       <CategoryGrid />
 
-      {promoAd && (
-        <section className="max-w-7xl mx-auto px-4 mb-12">
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="relative overflow-hidden rounded-3xl shadow-lg border border-gray-100">
-            <a href={promoAd.targetUrl} target="_blank" rel="sponsored noopener noreferrer">
-              <img src={promoAd.imageUrl} alt="Ad" className="w-full h-auto object-cover max-h-[300px]" />
-            </a>
-          </motion.div>
-        </section>
-      )}
+      <PromotionalBanner />
 
       {/* MAIN RESULTS SECTION */}
       <section id="results-section" className="py-12">
