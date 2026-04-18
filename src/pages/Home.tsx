@@ -10,7 +10,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { motion } from 'motion/react';
 import { toast } from 'sonner'; 
 import { useNavigate } from 'react-router-dom';
-import PromotionalBanner from '../components/PromotionalBanner';
+import AdBanner from '../components/AdBanner'; // Using the fixed responsive banner
 
 export default function Home() {
   const [latestAds, setLatestAds] = useState<Ad[]>([]);
@@ -50,6 +50,24 @@ export default function Home() {
                         (ad.city || "").toLowerCase() === selectedCity.toLowerCase();
     return matchesSearch && matchesCity;
   });
+
+  // --- START OF ADDED SORTING LOGIC ---
+  const sortedAds = [...filteredLatestAds].sort((a, b) => {
+    // 1. Featured Ads first
+    if (a.isFeatured && !b.isFeatured) return -1;
+    if (!a.isFeatured && b.isFeatured) return 1;
+
+    // 2. Group by Category
+    const catA = (a.category || "").toLowerCase();
+    const catB = (b.category || "").toLowerCase();
+    if (catA !== catB) return catA.localeCompare(catB);
+
+    // 3. Group by Breed
+    const breedA = (a.breed || "").toLowerCase();
+    const breedB = (b.breed || "").toLowerCase();
+    return breedA.localeCompare(breedB);
+  });
+  // --- END OF ADDED SORTING LOGIC ---
 
   const toggleFavorite = async (adId: string) => {
     if (!user) return toast.error('Please login to favorite ads');
@@ -94,13 +112,15 @@ export default function Home() {
             </div>
           ) : (
             <>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-                {filteredLatestAds.slice(0, 8).map(ad => (
+                {/* Now mapping the sortedAds instead of filteredLatestAds */}
+                {sortedAds.slice(0, 8).map(ad => (
                   <AdCard key={ad.id} ad={ad} isFavorite={favorites.includes(ad.id)} onToggleFavorite={() => toggleFavorite(ad.id)} />
                 ))}
               </div>
 
-              {filteredLatestAds.length === 0 && (
+              {sortedAds.length === 0 && (
                 <div className="text-center py-20 bg-white rounded-2xl border border-dashed border-gray-300">
                   <p className="text-gray-500 text-lg">No matching ads found.</p>
                   <button 
